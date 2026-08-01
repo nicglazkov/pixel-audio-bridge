@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/nicglazkov/pixel-audio-bridge/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
+  - name: scrcpy issues
+    url: https://github.com/Genymobile/scrcpy/issues
+    about: Capture and playback are handled by scrcpy. If audio is silent for one specific app, that's usually upstream or an Android capture opt-out.

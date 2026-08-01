@@ -347,15 +347,17 @@ final class BridgeController: ObservableObject {
         return "Not connected"
     }
 
+    /// Names the phone the way its owner would — model and link — rather than by
+    /// its adb serial, which is an IP address over Wi-Fi and means nothing to a
+    /// person reading it.
     var phoneDescription: String {
-        let phone = effectiveSelectedPhone
-        if !phone.isEmpty {
-            return info.phones.first { $0.serial == phone }?.display ?? "Selected phone unavailable"
-        }
-        if resolvedWired, !info.usb.isEmpty { return "\(info.usb) · USB" }
-        if !info.tcp.isEmpty { return "\(info.tcp) · Wi-Fi" }
-        if !info.usb.isEmpty { return "\(info.usb) · USB" }
-        return "Not reachable"
+        let serial = effectiveSelectedPhone.isEmpty
+            ? (resolvedWired && !info.usb.isEmpty ? info.usb : (info.tcp.isEmpty ? info.usb : info.tcp))
+            : effectiveSelectedPhone
+        guard !serial.isEmpty else { return "Not reachable" }
+        let link = serial.contains(":") ? "Wi-Fi" : "USB"
+        let model = info.phones.first { $0.serial == serial }?.model
+        return "\(model ?? serial) · \(link)"
     }
 
     var statusText: String {

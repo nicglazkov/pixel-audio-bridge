@@ -1,0 +1,39 @@
+Pixel Audio Bridge
+Copyright (c) 2026 Nic Glazkov
+
+This product is licensed under the MIT License; see LICENSE.
+
+------------------------------------------------------------------------------
+Third-party software
+------------------------------------------------------------------------------
+
+scrcpy — https://github.com/Genymobile/scrcpy
+  Copyright (C) 2018 Genymobile
+  Copyright (C) 2018-2026 Romain Vimont
+  Licensed under the Apache License, Version 2.0.
+
+  scrcpy is NOT redistributed with this project. It is an external runtime
+  dependency that the user installs separately (for example via Homebrew), and
+  this project invokes it as a subprocess. Attribution is provided here in
+  recognition of that dependency.
+
+  A copy of the Apache License, Version 2.0 is available at
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Android Debug Bridge (adb) — part of the Android SDK Platform Tools
+  Copyright (C) The Android Open Source Project
+  Licensed under the Apache License, Version 2.0.
+  Also an external runtime dependency, installed separately by the user.
+
+------------------------------------------------------------------------------
+Fonts bundled with the website (docs/assets/fonts)
+------------------------------------------------------------------------------
+
+Plus Jakarta Sans — Copyright (c) 2020 The Plus Jakarta Sans Project Authors
+JetBrains Mono    — Copyright (c) 2020 The JetBrains Mono Project Authors
+
+  Both licensed under the SIL Open Font License, Version 1.1.
+  https://openfontlicense.org
+
+  These are self-hosted rather than loaded from a font CDN so that visiting the
+  project website does not disclose visitors' IP addresses to a third party.

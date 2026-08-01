@@ -1,0 +1,57 @@
+name: Bug report
+description: Something doesn't work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please run `./bin/pab doctor` and paste the output below — it reports
+        dependencies, output devices, adb transports and config in one go, and
+        answers most of the questions I'd otherwise have to ask.
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `./bin/pab doctor`
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "15.6.1"
+    validations:
+      required: true
+  - type: input
+    id: phone
+    attributes:
+      label: Phone and Android version
+      placeholder: "Pixel 6 Pro, Android 17"
+    validations:
+      required: true
+  - type: dropdown
+    id: link
+    attributes:
+      label: Link
+      options: [Wired (USB), Wireless (Wi-Fi), Automatic, Both]
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant lines from the log
+      description: "Open Log in the app, or `$TMPDIR/pixel-audio-bridge/bridge.log`. Redact anything you'd rather not share — it can contain device names and local IP addresses."
+      render: shell

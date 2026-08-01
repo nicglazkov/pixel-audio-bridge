@@ -59,7 +59,15 @@ case "${1:-get}" in
 esac
 FAKE
 
-chmod +x "$FAKEBIN/adb" "$FAKEBIN/paboutput"
+# pab checks for scrcpy before doing anything. The tests never get as far as
+# launching it, but the dependency check must pass on a machine without it —
+# which is every CI runner.
+cat > "$FAKEBIN/scrcpy" <<'FAKE'
+#!/bin/bash
+exit 0
+FAKE
+
+chmod +x "$FAKEBIN/adb" "$FAKEBIN/paboutput" "$FAKEBIN/scrcpy"
 
 TMPCFG="$(mktemp -d)"
 export XDG_CONFIG_HOME="$TMPCFG"

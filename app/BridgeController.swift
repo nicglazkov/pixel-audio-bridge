@@ -19,7 +19,7 @@ enum Transport: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .auto: return "USB when plugged in, otherwise Wi-Fi"
-        case .usb:  return "USB cable · 50 ms buffer · stays in sync with video"
+        case .usb:  return "USB cable · 15 ms buffer · lowest latency"
         case .wifi: return "Wi-Fi · 200 ms buffer · best for music and podcasts"
         }
     }
@@ -48,6 +48,12 @@ enum BridgeState: Equatable {
     var isActive: Bool { self != .off }
 }
 
+// Swift's synthesised Decodable ignores a property's default value and throws on
+// a missing key. Since `pab` ships inside the bundle but can be replaced, any
+// version skew would fail the whole decode — and refresh() discards decode
+// errors, so the UI would silently go blank. Optional fields are therefore
+// decoded explicitly with decodeIfPresent.
+
 struct AudioOutput: Codable, Hashable, Identifiable {
     let uid: String
     let name: String
@@ -55,6 +61,17 @@ struct AudioOutput: Codable, Hashable, Identifiable {
     /// default, so this is what actually determines where audio lands.
     var `default`: Bool = false
     var id: String { uid }
+
+    init(uid: String, name: String, default isDefault: Bool = false) {
+        self.uid = uid; self.name = name; self.default = isDefault
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        uid = try c.decode(String.self, forKey: .uid)
+        name = try c.decode(String.self, forKey: .name)
+        `default` = try c.decodeIfPresent(Bool.self, forKey: .default) ?? false
+    }
 }
 
 struct PhoneDevice: Codable, Hashable, Identifiable {
@@ -69,6 +86,18 @@ struct PhoneDevice: Codable, Hashable, Identifiable {
     var isWired: Bool { kind == "usb" }
     var hardwareID: String { serialno.isEmpty ? serial : serialno }
     var display: String { model }
+
+    init(serial: String, model: String, kind: String, serialno: String = "") {
+        self.serial = serial; self.model = model; self.kind = kind; self.serialno = serialno
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        serial = try c.decode(String.self, forKey: .serial)
+        model  = try c.decode(String.self, forKey: .model)
+        kind   = try c.decode(String.self, forKey: .kind)
+        serialno = try c.decodeIfPresent(String.self, forKey: .serialno) ?? ""
+    }
 }
 
 struct BridgeInfo: Codable {
@@ -93,6 +122,86 @@ struct BridgeInfo: Codable {
     var headphonesConnected: Bool { !device.isEmpty }
     var phoneReachable: Bool { !usb.isEmpty || !tcp.isEmpty }
     var isWired: Bool { !usb.isEmpty }
+
+    init() {}
+
+    /// Every field is optional on the wire. A `pab` that predates or postdates
+    /// this binary should degrade to defaults, never blank the UI.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func str(_ k: CodingKeys) throws -> String { try c.decodeIfPresent(String.self, forKey: k) ?? "" }
+        device        = try str(.device)
+        device_name   = try str(.device_name)
+        device_match  = try str(.device_match)
+        output_uid    = try str(.output_uid)
+        default_uid   = try str(.default_uid)
+        default_name  = try str(.default_name)
+        phone_serial  = try str(.phone_serial)
+        usb           = try str(.usb)
+        tcp           = try str(.tcp)
+        phone_ip      = try str(.phone_ip)
+        pgid          = try str(.pgid)
+        buffer_usb    = try c.decodeIfPresent(Int.self,  forKey: .buffer_usb)    ?? 15
+        buffer_wifi   = try c.decodeIfPresent(Int.self,  forKey: .buffer_wifi)   ?? 200
+        output_buffer = try c.decodeIfPresent(Int.self,  forKey: .output_buffer) ?? 5
+        running       = try c.decodeIfPresent(Bool.self, forKey: .running)       ?? false
+        outputs       = try c.decodeIfPresent([AudioOutput].self, forKey: .outputs) ?? []
+        phones        = try c.decodeIfPresent([PhoneDevice].self, forKey: .phones) ?? []
+    }
+}
+
+// MARK: - Pure logic
+//
+// Kept free of UserDefaults, timers and processes so it can be tested directly.
+// The controller below is a thin stateful wrapper over these.
+
+enum BridgeLogic {
+
+    /// Measured, not estimated: CoreAudio reports this as the AirPods Max device
+    /// latency. It dominates the budget and no setting changes it.
+    static let bluetoothMs = 171
+
+    /// Phones reachable over the chosen link, one entry per physical handset.
+    /// The same phone appears twice when USB and wireless ADB are both live, so
+    /// entries are collapsed by hardware serial, keeping the USB one — which is
+    /// what `auto` would pick anyway.
+    static func availablePhones(_ phones: [PhoneDevice], transport: Transport) -> [PhoneDevice] {
+        let onThisLink: [PhoneDevice]
+        switch transport {
+        case .auto: onThisLink = phones
+        case .usb:  onThisLink = phones.filter { $0.isWired }
+        case .wifi: onThisLink = phones.filter { !$0.isWired }
+        }
+        var seen = Set<String>()
+        return onThisLink
+            .sorted { $0.isWired && !$1.isWired }
+            .filter { seen.insert($0.hardwareID).inserted }
+    }
+
+    /// A phone selection applies only while it matches the chosen transport;
+    /// otherwise fall back to automatic rather than contradicting the transport.
+    static func effectiveSelectedPhone(_ selected: String, available: [PhoneDevice]) -> String {
+        available.contains { $0.serial == selected } ? selected : ""
+    }
+
+    /// An explicitly chosen phone decides the link on its own — its serial
+    /// already encodes whether it is USB or Wi-Fi.
+    static func resolvedWired(selectedPhone: String, transport: Transport, usbPresent: Bool) -> Bool {
+        if !selectedPhone.isEmpty { return !selectedPhone.contains(":") }
+        switch transport {
+        case .usb:  return true
+        case .wifi: return false
+        case .auto: return usbPresent
+        }
+    }
+
+    static func buffer(wired: Bool, info: BridgeInfo) -> Int {
+        wired ? info.buffer_usb : info.buffer_wifi
+    }
+
+    static func latencyMs(buffer: Int, outputBuffer: Int) -> Int {
+        buffer + outputBuffer + bluetoothMs
+    }
 }
 
 // MARK: - Controller
@@ -169,12 +278,15 @@ final class BridgeController: ObservableObject {
 
     // MARK: Paths
 
+    /// `pab` ships inside the bundle's Resources. There is no meaningful fallback:
+    /// if it is missing the build is broken, and guessing at a path on disk would
+    /// only turn that into a confusing runtime failure somewhere else.
     private var pabPath: String {
-        if let bundled = Bundle.main.resourceURL?.appendingPathComponent("pab").path,
-           FileManager.default.isExecutableFile(atPath: bundled) {
-            return bundled
-        }
-        return NSString(string: "~/dev/pixel-audio-bridge/bin/pab").expandingTildeInPath
+        Bundle.main.resourceURL?.appendingPathComponent("pab").path ?? "pab"
+    }
+
+    var helperMissing: Bool {
+        !FileManager.default.isExecutableFile(atPath: pabPath)
     }
 
     var logPath: String {
@@ -188,52 +300,30 @@ final class BridgeController: ObservableObject {
     /// both USB and wireless ADB are live, so listing both under an explicit
     /// "Wired" or "Wireless" choice offers a selection that contradicts it.
     var availablePhones: [PhoneDevice] {
-        let onThisLink: [PhoneDevice]
-        switch transport {
-        case .auto: onThisLink = info.phones
-        case .usb:  onThisLink = info.phones.filter { $0.isWired }
-        case .wifi: onThisLink = info.phones.filter { !$0.isWired }
-        }
-
-        // One handset on both links is still one handset. Collapse by hardware
-        // serial, keeping the USB entry, which is what `auto` would pick anyway.
-        var seen = Set<String>()
-        return onThisLink
-            .sorted { $0.isWired && !$1.isWired }
-            .filter { seen.insert($0.hardwareID).inserted }
+        BridgeLogic.availablePhones(info.phones, transport: transport)
     }
 
-    /// A phone selection applies only while it matches the chosen transport.
-    /// Falling back to automatic avoids a stale selection fighting the transport,
-    /// and avoids mutating state (and restarting) whenever transport changes.
     var effectiveSelectedPhone: String {
-        availablePhones.contains { $0.serial == selectedPhone } ? selectedPhone : ""
+        BridgeLogic.effectiveSelectedPhone(selectedPhone, available: availablePhones)
     }
 
-    /// Whether the resolved link is USB. An explicitly chosen phone decides this
-    /// on its own, since its serial already encodes the link type.
     var resolvedWired: Bool {
-        let phone = effectiveSelectedPhone
-        if !phone.isEmpty { return !phone.contains(":") }
-        switch transport {
-        case .usb:  return true
-        case .wifi: return false
-        case .auto: return info.isWired
-        }
+        BridgeLogic.resolvedWired(selectedPhone: effectiveSelectedPhone,
+                                  transport: transport,
+                                  usbPresent: info.isWired)
     }
 
-    var effectiveBuffer: Int { resolvedWired ? info.buffer_usb : info.buffer_wifi }
+    var effectiveBuffer: Int { BridgeLogic.buffer(wired: resolvedWired, info: info) }
 
-    /// Capture buffer + SDL output buffer + the AirPods Max Bluetooth hop. The
-    /// 171 ms is measured, not guessed — CoreAudio reports it for that device —
-    /// and it dominates everything else here.
-    var estimatedLatencyMs: Int { effectiveBuffer + info.output_buffer + 171 }
+    var estimatedLatencyMs: Int {
+        BridgeLogic.latencyMs(buffer: effectiveBuffer, outputBuffer: info.output_buffer)
+    }
 
-    /// True when the output that would actually be pinned is present. A remembered
+    /// True when the output that would actually be used is present. A remembered
     /// selection that has been disconnected counts as unavailable — the bridge
-    /// must refuse rather than fall back to some other device.
+    /// waits rather than routing somewhere else.
     var outputAvailable: Bool {
-        if !guardOutput { return true }        // no pinned device to wait for
+        if !guardOutput { return true }        // no specific device to wait for
         if !selectedOutput.isEmpty { return info.outputs.contains { $0.uid == selectedOutput } }
         return info.headphonesConnected
     }
@@ -324,6 +414,10 @@ final class BridgeController: ObservableObject {
     /// connected, should the bridge be running? Called on every poll, so a device
     /// appearing or vanishing is picked up without any explicit event plumbing.
     func evaluate() {
+        guard !helperMissing else {
+            state = .failed("Bridge helper missing from the app bundle — rebuild with ./build.sh")
+            return
+        }
         guard enabled else {
             if process != nil { stop() } else { state = .off }
             return

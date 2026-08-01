@@ -1,3 +1,4 @@
 build/
 *.iconset/
 .DS_Store
+previews/

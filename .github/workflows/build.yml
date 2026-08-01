@@ -33,3 +33,6 @@ jobs:
 
       - name: Shell syntax check
         run: bash -n bin/pab && bash -n build.sh
+
+      - name: Tests
+        run: ./tests/run.sh

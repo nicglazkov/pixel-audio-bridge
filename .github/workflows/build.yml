@@ -1,0 +1,35 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build app bundle
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      # Only swiftc and iconutil are needed to build; scrcpy and adb are runtime
+      # dependencies and are deliberately not installed here.
+      - name: Build
+        run: ./build.sh
+
+      - name: Verify bundle contents
+        run: |
+          APP=build/PixelAudioBridge.app
+          for f in Contents/MacOS/PixelAudioBridge Contents/Resources/pab \
+                   Contents/Resources/paboutput Contents/Resources/AppIcon.icns \
+                   Contents/Info.plist; do
+            test -e "$APP/$f" || { echo "missing $f"; exit 1; }
+          done
+          echo "bundle complete"
+
+      - name: Shell syntax check
+        run: bash -n bin/pab && bash -n build.sh

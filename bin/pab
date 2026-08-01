@@ -1,0 +1,466 @@
+#!/bin/bash
+# pab — Pixel Audio Bridge
+#
+# Streams audio from an Android phone to this Mac's current output device.
+#
+# scrcpy plays the audio itself, through SDL, to whatever macOS calls the
+# default output. This is the lowest-latency arrangement available: one process,
+# one buffer, no encode/mux/pipe/demux stage. It is also why there is no hard
+# guarantee about which device audio reaches — scrcpy cannot target one.
+#
+# The safety mechanism is therefore a WATCHDOG, not a pin: while running, the
+# default output device is polled, and the bridge is killed the moment it stops
+# being the expected device. That leaves a sub-second window on a mid-stream
+# disconnect. A previous design routed playback through mpv, which could pin a
+# device by UID and refuse to fall back — zero exposure, but ~200ms more latency
+# as shipped and ~10ms more even when tuned. The trade was made deliberately.
+
+set -uo pipefail
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/pixel-audio-bridge"
+CONFIG_FILE="$CONFIG_DIR/config"
+RUN_DIR="${TMPDIR:-/tmp}/pixel-audio-bridge"
+PGID_FILE="$RUN_DIR/pgid"
+LOG_FILE="$RUN_DIR/bridge.log"
+
+# Buffer sizes, in ms.
+#
+# Wi-Fi 200 is measured: at 50ms a 15s run skipped 4 times, and 150ms was clean
+# twice then lost 514ms of audio on the third run. 200ms was clean three times.
+#
+# USB 15 is NOT measured — it is a deliberate choice for minimum latency on a
+# jitter-free link, below scrcpy's own 50ms default. If audio clicks or drops
+# out, that is sample-skipping: raise this. It will sound like glitches, not lag.
+BUFFER_USB=15
+BUFFER_WIFI=200
+
+# SDL's output-side buffer. scrcpy's default is 10ms.
+OUTPUT_BUFFER=5
+
+ADB_PORT=5555
+
+# Precedence: environment > saved config > built-in default. Capture the
+# environment before sourcing, because the config file assigns unconditionally
+# and would otherwise silently clobber an explicit override.
+_env_airpods="${AIRPODS_MATCH:-}"
+_env_phone_ip="${PHONE_IP:-}"
+_env_output_uid="${OUTPUT_UID:-}"
+_env_phone_serial="${PHONE_SERIAL:-}"
+
+AIRPODS_MATCH=""
+PHONE_IP=""
+OUTPUT_UID=""      # explicit device UID; empty means match by name
+PHONE_SERIAL=""    # explicit adb serial; empty means auto-select
+
+mkdir -p "$CONFIG_DIR" "$RUN_DIR"
+# shellcheck source=/dev/null
+[ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
+
+AIRPODS_MATCH="${_env_airpods:-${AIRPODS_MATCH:-AirPods Max}}"
+PHONE_IP="${_env_phone_ip:-${PHONE_IP:-}}"
+
+# Remember what the config file itself declared, so a one-off --device/--serial
+# flag cannot silently become a permanent setting via save_config.
+_cfg_output_uid="$OUTPUT_UID"
+_cfg_phone_serial="$PHONE_SERIAL"
+
+OUTPUT_UID="${_env_output_uid:-${OUTPUT_UID:-}}"
+PHONE_SERIAL="${_env_phone_serial:-${PHONE_SERIAL:-}}"
+
+export PATH="$HOME/Library/Android/sdk/platform-tools:/opt/homebrew/bin:$PATH"
+
+# paboutput ships beside this script inside the app bundle; fall back to the
+# build directory when running from a source checkout.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if   [ -x "$SELF_DIR/paboutput" ];            then PABOUTPUT="$SELF_DIR/paboutput"
+elif [ -x "$SELF_DIR/../build/paboutput" ];   then PABOUTPUT="$SELF_DIR/../build/paboutput"
+else PABOUTPUT=""
+fi
+
+log()  { printf '%s %s\n' "$(date '+%H:%M:%S')" "$*" >&2; }
+die()  { log "ERROR: $*"; exit 1; }
+
+# Values emitted as JSON are device UIDs, adb serials, IPs and model names —
+# no control characters, so quotes and backslashes are the only escaping needed.
+esc_json() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+
+save_config() {
+    cat > "$CONFIG_FILE" <<EOF
+# pixel-audio-bridge config — written by 'pab'
+PHONE_IP="$PHONE_IP"
+AIRPODS_MATCH="$AIRPODS_MATCH"
+OUTPUT_UID="$_cfg_output_uid"
+PHONE_SERIAL="$_cfg_phone_serial"
+EOF
+}
+
+# ---------------------------------------------------------------- audio device
+
+# Older configs stored mpv-style 'coreaudio/UID'; CoreAudio itself uses the bare
+# UID. Accept either.
+norm_uid() { printf '%s' "${1#coreaudio/}"; }
+
+outputs_json() {
+    [ -z "$PABOUTPUT" ] && { printf '[]'; return; }
+    "$PABOUTPUT" list 2>/dev/null || printf '[]'
+}
+
+default_output_uid()  { [ -z "$PABOUTPUT" ] && return 0; "$PABOUTPUT" get 2>/dev/null | cut -f1; }
+default_output_name() { [ -z "$PABOUTPUT" ] && return 0; "$PABOUTPUT" get 2>/dev/null | cut -f2; }
+
+output_name_for() {
+    local uid; uid=$(norm_uid "$1")
+    [ -z "$uid" ] && return 0
+    outputs_json | python3 -c "
+import json,sys
+want=sys.argv[1]
+for o in json.load(sys.stdin):
+    if o['uid']==want: print(o['name']); break
+" "$uid" 2>/dev/null
+}
+
+# The device the bridge wants audio to reach: an explicit selection if present,
+# otherwise the first output whose name matches AIRPODS_MATCH. Emits nothing
+# when that device is not currently connected.
+target_output_uid() {
+    if [ -n "$OUTPUT_UID" ]; then
+        local want; want=$(norm_uid "$OUTPUT_UID")
+        outputs_json | python3 -c "
+import json,sys
+want=sys.argv[1]
+for o in json.load(sys.stdin):
+    if o['uid']==want: print(o['uid']); break
+" "$want" 2>/dev/null
+        return 0
+    fi
+    outputs_json | python3 -c "
+import json,sys
+m=sys.argv[1].lower()
+for o in json.load(sys.stdin):
+    if m in o['name'].lower(): print(o['uid']); break
+" "$AIRPODS_MATCH" 2>/dev/null
+}
+
+# ------------------------------------------------------------------- transport
+
+usb_serial() { adb devices 2>/dev/null | awk 'NR>1 && $2=="device" && $1 !~ /:/ {print $1; exit}'; }
+tcp_serial() { adb devices 2>/dev/null | awk 'NR>1 && $2=="device" && $1 ~  /:/ {print $1; exit}'; }
+
+# When the phone is on USB we can read its current Wi-Fi address and remember it,
+# so wireless works later without the user ever looking up an IP.
+learn_phone_ip() {
+    local serial="$1" ip
+    ip=$(adb -s "$serial" shell ip -f inet addr show wlan0 </dev/null 2>/dev/null \
+         | grep -o 'inet [0-9.]*' | awk '{print $2}')
+    if [ -n "$ip" ] && [ "$ip" != "$PHONE_IP" ]; then
+        PHONE_IP="$ip"; save_config; log "learned phone IP: $PHONE_IP"
+    fi
+}
+
+# An already-connected TCP transport carries the phone's IP in its serial.
+adopt_ip_from_tcp() {
+    local t
+    [ -n "$PHONE_IP" ] && return 0
+    t=$(tcp_serial); [ -z "$t" ] && return 1
+    PHONE_IP="${t%%:*}"; save_config; log "adopted phone IP from active transport: $PHONE_IP"
+}
+
+connect_wireless() {
+    local existing; existing=$(tcp_serial)
+    if [ -n "$existing" ]; then echo "$existing"; return 0; fi
+    [ -z "$PHONE_IP" ] && return 1
+    adb connect "$PHONE_IP:$ADB_PORT" >/dev/null 2>&1
+    sleep 1
+    tcp_serial
+}
+
+# Choose transport and echo "<serial> <buffer_ms> <label>".
+select_transport() {
+    local want="$1" usb tcp
+    usb=$(usb_serial)
+    if [ -n "$usb" ]; then learn_phone_ip "$usb"; else adopt_ip_from_tcp; fi
+
+    # An explicitly chosen phone overrides transport auto-selection entirely:
+    # the serial itself determines whether this is a USB or Wi-Fi link.
+    if [ -n "$PHONE_SERIAL" ]; then
+        if adb devices 2>/dev/null | awk 'NR>1 && $2=="device" {print $1}' | grep -qxF "$PHONE_SERIAL"; then
+            case "$PHONE_SERIAL" in
+                *:*) echo "$PHONE_SERIAL $BUFFER_WIFI wireless" ;;
+                *)   echo "$PHONE_SERIAL $BUFFER_USB wired" ;;
+            esac
+            return 0
+        fi
+        die "selected phone '$PHONE_SERIAL' is not connected"
+    fi
+
+    case "$want" in
+        usb)
+            [ -z "$usb" ] && die "no USB device — plug the phone in, or use --transport wifi"
+            echo "$usb $BUFFER_USB wired" ;;
+        wifi)
+            tcp=$(connect_wireless) || die "no wireless device and no known phone IP — connect over USB once to learn it"
+            [ -z "$tcp" ] && die "could not reach $PHONE_IP:$ADB_PORT (phone asleep, or 'adb tcpip $ADB_PORT' needed over USB)"
+            echo "$tcp $BUFFER_WIFI wireless" ;;
+        auto)
+            if [ -n "$usb" ]; then
+                echo "$usb $BUFFER_USB wired"
+            else
+                tcp=$(connect_wireless)
+                [ -z "$tcp" ] && die "phone not reachable over USB or Wi-Fi"
+                echo "$tcp $BUFFER_WIFI wireless"
+            fi ;;
+        *) die "unknown transport '$want' (use auto, usb, or wifi)" ;;
+    esac
+}
+
+# ------------------------------------------------------------------- lifecycle
+
+stop_bridge() {
+    local pgid
+    if [ -f "$PGID_FILE" ]; then
+        pgid=$(cat "$PGID_FILE" 2>/dev/null)
+        if [ -n "$pgid" ] && kill -0 -- "-$pgid" 2>/dev/null; then
+            kill -TERM -- "-$pgid" 2>/dev/null
+            for _ in $(seq 1 10); do
+                kill -0 -- "-$pgid" 2>/dev/null || break
+                sleep 0.2
+            done
+            kill -KILL -- "-$pgid" 2>/dev/null
+            log "stopped bridge (pgid $pgid)"
+        fi
+        rm -f "$PGID_FILE"
+    fi
+}
+
+is_running() {
+    local pgid
+    [ -f "$PGID_FILE" ] || return 1
+    pgid=$(cat "$PGID_FILE" 2>/dev/null)
+    [ -n "$pgid" ] && kill -0 -- "-$pgid" 2>/dev/null
+}
+
+# ------------------------------------------------------------------ subcommands
+
+cmd_run() {
+    local transport="auto" buffer_override=""
+    GUARD=1
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --transport)  transport="${2:-auto}"; shift 2 ;;
+            --wired)      transport="usb";  shift ;;
+            --wireless)   transport="wifi"; shift ;;
+            --buffer)     buffer_override="${2:-}"; shift 2 ;;
+            --device)     OUTPUT_UID="${2:-}"; shift 2 ;;
+            --serial)     PHONE_SERIAL="${2:-}"; shift 2 ;;
+            --no-guard)   GUARD=0; shift ;;
+            *) die "unknown option '$1'" ;;
+        esac
+    done
+
+    command -v scrcpy >/dev/null || die "scrcpy not found (brew install scrcpy)"
+    command -v adb    >/dev/null || die "adb not found"
+
+    local target="" target_name=""
+    if [ "$GUARD" = "1" ]; then
+        [ -z "$PABOUTPUT" ] && die "paboutput helper not found — cannot verify the output device"
+        target=$(target_output_uid)
+        if [ -z "$target" ]; then
+            if [ -n "$OUTPUT_UID" ]; then
+                die "selected output device is not connected"
+            fi
+            die "no output device matching '$AIRPODS_MATCH' is connected"
+        fi
+        target_name=$(output_name_for "$target")
+
+        # scrcpy plays to the default output and cannot be told otherwise, so the
+        # target has to BE the default. Switch to it rather than refusing.
+        local current; current=$(default_output_uid)
+        if [ "$current" != "$target" ]; then
+            log "switching default output to $target_name"
+            "$PABOUTPUT" set "$target" || die "could not make '$target_name' the default output"
+            sleep 0.3
+            current=$(default_output_uid)
+            [ "$current" != "$target" ] && die "default output is still '$(default_output_name)' — refusing to start"
+        fi
+        log "output: $target_name (watchdog armed)"
+    else
+        log "output guard DISABLED — playing to '$(default_output_name)', whatever it becomes"
+    fi
+
+    # select_transport runs in a command substitution, so a die() inside it exits
+    # only that subshell. Check the result explicitly rather than trusting $?.
+    local picked; picked=$(select_transport "$transport") || exit 1
+    [ -z "$picked" ] && die "could not select a transport"
+    read -r serial buffer label <<<"$picked"
+
+    if [ -n "$buffer_override" ]; then
+        case "$buffer_override" in ''|*[!0-9]*) die "--buffer expects a number of milliseconds" ;; esac
+        buffer="$buffer_override"
+    fi
+    log "transport: $label ($serial), buffer ${buffer}ms + ${OUTPUT_BUFFER}ms output"
+
+    stop_bridge
+
+    # Job control puts scrcpy in its own process group so the watchdog can tear
+    # it down with a single group signal.
+    set -m
+    {
+        scrcpy -s "$serial" \
+               --no-video --no-window --no-control \
+               --audio-source=playback \
+               --audio-buffer="$buffer" \
+               --audio-output-buffer="$OUTPUT_BUFFER" \
+            >>"$LOG_FILE" 2>&1
+    } &
+    local pgid=$!
+    echo "$pgid" > "$PGID_FILE"
+    set +m
+
+    # The watchdog IS the safety mechanism. scrcpy has no output-device option,
+    # so the only way to keep audio off the speakers is to notice the default
+    # output changing and kill playback. Polling twice a second bounds the
+    # exposure at ~0.5s.
+    local watchdog=""
+    if [ "$GUARD" = "1" ]; then
+        (
+            while kill -0 -- "-$pgid" 2>/dev/null; do
+                sleep 0.5
+                now=$("$PABOUTPUT" get 2>/dev/null | cut -f1)
+                if [ "$now" != "$target" ]; then
+                    log "default output changed to '${now:-none}' — killing bridge"
+                    kill -TERM -- "-$pgid" 2>/dev/null
+                    break
+                fi
+            done
+        ) &
+        watchdog=$!
+    fi
+
+    trap 'stop_bridge; exit 0' TERM INT
+    log "bridge running (pgid $pgid) — audio should reach ${target_name:-the default output} shortly"
+    wait "$pgid"
+    local rc=$?
+    [ -n "$watchdog" ] && kill "$watchdog" 2>/dev/null
+    rm -f "$PGID_FILE"
+    log "bridge exited (rc=$rc)"
+    return $rc
+}
+
+cmd_status() {
+    if is_running; then echo "running (pgid $(cat "$PGID_FILE"))"; else echo "stopped"; fi
+}
+
+# Machine-readable state for the GUI.
+cmd_info() {
+    local u t run="false" pg="" target curu curn
+    u=$(usb_serial); t=$(tcp_serial)
+    if [ -n "$u" ]; then learn_phone_ip "$u"; else adopt_ip_from_tcp; fi
+    target=$(target_output_uid)
+    curu=$(default_output_uid); curn=$(default_output_name)
+    if is_running; then run="true"; pg=$(cat "$PGID_FILE" 2>/dev/null); fi
+
+    printf '{'
+    printf '"device":"%s",'         "$(esc_json "$target")"
+    printf '"device_name":"%s",'    "$(esc_json "$(output_name_for "$target")")"
+    printf '"device_match":"%s",'   "$(esc_json "$AIRPODS_MATCH")"
+    printf '"output_uid":"%s",'     "$(esc_json "$OUTPUT_UID")"
+    printf '"default_uid":"%s",'    "$(esc_json "$curu")"
+    printf '"default_name":"%s",'   "$(esc_json "$curn")"
+    printf '"phone_serial":"%s",'   "$(esc_json "$PHONE_SERIAL")"
+    printf '"usb":"%s",'            "$(esc_json "$u")"
+    printf '"tcp":"%s",'            "$(esc_json "$t")"
+    printf '"phone_ip":"%s",'       "$(esc_json "$PHONE_IP")"
+    printf '"buffer_usb":%s,'       "$BUFFER_USB"
+    printf '"buffer_wifi":%s,'      "$BUFFER_WIFI"
+    printf '"output_buffer":%s,'    "$OUTPUT_BUFFER"
+    printf '"running":%s,'          "$run"
+    printf '"pgid":"%s",'           "$(esc_json "$pg")"
+    printf '"outputs":%s,'          "$(outputs_json)"
+    printf '"phones":%s'            "$(list_adb_json)"
+    printf '}\n'
+}
+
+list_adb_json() {
+    local first=1
+    printf '['
+    while IFS= read -r serial; do
+        [ -z "$serial" ] && continue
+        local model kind serialno
+        # </dev/null matters: `adb shell` reads stdin, and without it this drains
+        # the serial list feeding the loop, so only the first device is listed.
+        model=$(adb -s "$serial" shell getprop ro.product.model </dev/null 2>/dev/null | tr -d '\r')
+        [ -z "$model" ] && model="$serial"
+        # The adb serial differs per link (a hardware id over USB vs "IP:PORT" over
+        # Wi-Fi), so ro.serialno is what identifies one handset across both.
+        serialno=$(adb -s "$serial" shell getprop ro.serialno </dev/null 2>/dev/null | tr -d '\r')
+        [ -z "$serialno" ] && serialno="$serial"
+        case "$serial" in *:*) kind="wifi" ;; *) kind="usb" ;; esac
+        [ $first -eq 0 ] && printf ','
+        first=0
+        printf '{"serial":"%s","model":"%s","kind":"%s","serialno":"%s"}' \
+               "$(esc_json "$serial")" "$(esc_json "$model")" "$kind" "$(esc_json "$serialno")"
+    done < <(adb devices 2>/dev/null | awk 'NR>1 && $2=="device" {print $1}')
+    printf ']'
+}
+
+cmd_doctor() {
+    echo "=== dependencies ==="
+    for t in scrcpy adb; do printf '  %-10s %s\n' "$t" "$(command -v $t || echo 'MISSING')"; done
+    printf '  %-10s %s\n' "paboutput" "${PABOUTPUT:-MISSING}"
+    echo
+    echo "=== output devices ==="
+    outputs_json | python3 -m json.tool 2>/dev/null | sed 's/^/  /' || echo "  (none)"
+    printf '  default: %s\n' "$(default_output_name)"
+    printf '  target : %s\n' "$(output_name_for "$(target_output_uid)")"
+    echo
+    local du; du=$(usb_serial)
+    if [ -n "$du" ]; then learn_phone_ip "$du"; else adopt_ip_from_tcp; fi
+    echo "=== adb transports ==="
+    adb devices 2>/dev/null | tail -n +2 | grep -v '^[[:space:]]*$' | sed 's/^/  /'
+    local u t; u=$(usb_serial); t=$(tcp_serial)
+    printf '  usb: %s\n  tcp: %s\n' "${u:-none}" "${t:-none}"
+    echo
+    echo "=== config ==="
+    printf '  phone ip: %s\n  config:   %s\n  log:      %s\n' "${PHONE_IP:-unset}" "$CONFIG_FILE" "$LOG_FILE"
+}
+
+cmd_enable_wireless() {
+    local usb; usb=$(usb_serial)
+    [ -z "$usb" ] && die "plug the phone in over USB first"
+    learn_phone_ip "$usb"
+    adb -s "$usb" tcpip "$ADB_PORT" >/dev/null 2>&1
+    sleep 2
+    adb connect "$PHONE_IP:$ADB_PORT" 2>&1 | sed 's/^/  /'
+    log "wireless enabled — this resets when the phone reboots"
+}
+
+usage() {
+    cat <<'EOF'
+pab — Pixel Audio Bridge
+
+  pab run [options]   Stream phone audio to this Mac's output device.
+                      Blocks until stopped.
+        --wired | --wireless | --transport auto|usb|wifi
+                      Link to use. Default auto: USB when plugged in.
+        --buffer MS   Override the buffer (default 15 USB, 200 Wi-Fi).
+        --device UID  Output device to use; it is made the system default.
+        --serial S    adb serial of the phone to use (see 'pab info').
+        --no-guard    Do not check or watch the output device at all.
+  pab stop            Tear down a running bridge.
+  pab status          Print running/stopped.
+  pab info            Machine-readable state (JSON).
+  pab doctor          Check dependencies, devices, and config.
+  pab enable-wireless Enable wireless ADB. Needs USB once; resets on reboot.
+EOF
+}
+
+case "${1:-}" in
+    run)             shift; cmd_run "$@" ;;
+    stop)            stop_bridge ;;
+    status)          cmd_status ;;
+    info)            cmd_info ;;
+    doctor)          cmd_doctor ;;
+    enable-wireless) cmd_enable_wireless ;;
+    ""|-h|--help)    usage ;;
+    *)               usage; exit 1 ;;
+esac

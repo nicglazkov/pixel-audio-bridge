@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Audio Bridge — listen to your Android phone through your Mac's headphones</title>
+<meta name="description" content="A macOS utility that routes Android phone audio to headphones connected to your Mac. ~191 ms wired. Every number measured.">
+<link rel="icon" href="assets/icon.png">
+<meta property="og:title" content="Pixel Audio Bridge">
+<meta property="og:description" content="Listen to your Android phone through headphones connected to your Mac. ~191 ms wired.">
+<meta property="og:image" content="assets/icon.png">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  /* Ground and surfaces read as a darkened studio; indigo and azure are lifted
+     straight from the app icon so the site and the product are one identity. */
+  --ink:#080C1A;
+  --surface:#111830;
+  --line:#1E2743;
+  --indigo:#6B4AF5;
+  --azure:#2185F5;
+  /* Amber is reserved for exactly one thing on this page: the Bluetooth hop,
+     the only part of the budget no setting can change. */
+  --signal:#FFB13D;
+  --paper:#E9EDF8;
+  --muted:#7C88A6;
+
+  --display:"Archivo",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--ink);color:var(--paper);
+  font-family:var(--body);font-size:17px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  /* One soft light source behind the hero; keeps the ground from reading flat. */
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 50% -10%,rgba(107,74,245,.20),transparent 70%);
+}
+.wrap{position:relative;z-index:1;max-width:940px;margin:0 auto;padding:0 24px}
+
+a{color:var(--azure);text-decoration:none;border-bottom:1px solid rgba(33,133,245,.35)}
+a:hover{border-bottom-color:var(--azure)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:3px}
+
+h1,h2,h3{font-family:var(--display);font-variation-settings:"wdth" 112;margin:0;line-height:1.08}
+h1{font-size:clamp(2.6rem,7vw,4.6rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:600;letter-spacing:-.01em}
+h3{font-size:1.05rem;font-weight:600;letter-spacing:-.005em}
+p{margin:0 0 1.1em}
+strong{font-weight:500;color:#fff}
+
+.eyebrow{
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 .9rem;display:block;
+}
+
+/* ---------------------------------------------------------------- hero */
+.hero{padding:88px 0 24px;text-align:center}
+.hero img{width:88px;height:88px;border-radius:20px;box-shadow:0 18px 50px -18px rgba(107,74,245,.75)}
+.hero h1{margin:26px 0 0}
+.lede{
+  font-size:clamp(1.05rem,2.2vw,1.28rem);color:var(--muted);
+  max-width:44ch;margin:18px auto 0;line-height:1.5;
+}
+.lede em{color:var(--paper);font-style:normal;font-weight:500}
+
+/* ------------------------------------------------- signature: budget bar */
+.budget{margin:60px 0 0;padding:30px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.budget-head{display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;margin-bottom:22px}
+.total{font-family:var(--mono);font-size:2.6rem;font-weight:500;letter-spacing:-.03em;line-height:1}
+/* Scope to .unit — a bare `.total span` also matched the number itself and
+   silently shrank it to the label size. */
+.total .unit{font-size:1rem;color:var(--muted);margin-left:.35em}
+
+.toggle{display:inline-flex;background:#0A1020;border:1px solid var(--line);border-radius:9px;padding:3px}
+.toggle button{
+  font:500 .82rem/1 var(--body);color:var(--muted);background:none;border:0;
+  padding:9px 15px;border-radius:6px;cursor:pointer;transition:color .18s,background .18s;
+}
+.toggle button[aria-pressed="true"]{background:rgba(33,133,245,.16);color:#fff}
+.toggle button:hover{color:var(--paper)}
+
+.bar{display:flex;height:52px;border-radius:9px;overflow:hidden;background:#0A1020;width:100%}
+.seg{
+  height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  font-family:var(--mono);font-size:.76rem;color:#04070F;font-weight:500;white-space:nowrap;
+  transition:width .55s cubic-bezier(.4,0,.2,1);
+}
+.seg-buffer{background:linear-gradient(180deg,var(--azure),#1668c9)}
+.seg-output{background:#2F3B5C}
+.seg-bt{background:linear-gradient(180deg,var(--signal),#E08A18)}
+
+.legend{display:flex;flex-wrap:wrap;gap:20px;margin-top:18px;font-size:.83rem;color:var(--muted)}
+.legend div{display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:2px;flex:none}
+.note{
+  margin-top:20px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:.9rem;color:var(--muted);
+}
+.note b{color:var(--signal);font-weight:500}
+
+/* --------------------------------------------------------------- install */
+.install{margin:26px 0 0}
+.code{
+  font-family:var(--mono);font-size:.86rem;background:var(--surface);
+  white-space:pre;
+  border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+  overflow-x:auto;text-align:left;color:#C7D2EA;
+}
+.code .c{color:var(--muted)}
+
+/* -------------------------------------------------------------- sections */
+section{padding:74px 0;border-top:1px solid var(--line);margin-top:74px}
+section > p{max-width:62ch;color:#C2CBE0}
+
+.path{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:30px 0 0;font-family:var(--mono);font-size:.83rem}
+.node{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 15px;color:var(--paper)}
+.node.accent{border-color:rgba(255,177,61,.45);color:var(--signal)}
+.arrow{color:var(--muted)}
+
+table{width:100%;border-collapse:collapse;margin-top:26px;font-size:.92rem}
+th,td{text-align:left;padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td.num{font-family:var(--mono);white-space:nowrap;color:#fff}
+td .how{color:var(--muted);font-size:.86rem}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:28px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.card h3{margin-bottom:8px}
+.card p{margin:0;font-size:.9rem;color:var(--muted)}
+
+.caveat{
+  margin-top:28px;padding:18px 20px;border-radius:12px;
+  background:rgba(255,177,61,.07);border:1px solid rgba(255,177,61,.25);
+  font-size:.9rem;color:#E4D6BC;
+}
+.caveat strong{color:var(--signal);font-weight:500}
+
+footer{padding:56px 0 72px;border-top:1px solid var(--line);margin-top:74px;color:var(--muted);font-size:.88rem}
+footer .row{display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between}
+
+@media (max-width:640px){
+  .hero{padding:56px 0 16px}
+  .budget{padding:22px}
+  .total{font-size:2rem}
+  .seg{font-size:0}
+  section{padding:54px 0;margin-top:54px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <img src="assets/icon.png" alt="">
+    <h1>Pixel Audio Bridge</h1>
+    <p class="lede">Listen to your Android phone through the headphones <em>already connected to your Mac</em>.</p>
+  </header>
+
+  <!-- Signature element: the latency budget. Both states share one scale, so
+       switching to Wireless doubles the bar while the amber block never moves. -->
+  <div class="budget">
+    <div class="budget-head">
+      <div>
+        <span class="eyebrow">End-to-end latency</span>
+        <div class="total"><span id="total">191</span><span class="unit">ms</span></div>
+      </div>
+      <div class="toggle" role="group" aria-label="Connection type">
+        <button id="btn-wired" aria-pressed="true">Wired</button>
+        <button id="btn-wifi" aria-pressed="false">Wireless</button>
+      </div>
+    </div>
+
+    <div class="bar" id="bar" role="img" aria-label="Latency budget breakdown">
+      <div class="seg seg-buffer" id="s-buf"></div>
+      <div class="seg seg-output" id="s-out"></div>
+      <div class="seg seg-bt"     id="s-bt"></div>
+    </div>
+
+    <div class="legend">
+      <div><span class="dot" style="background:var(--azure)"></span>Capture buffer</div>
+      <div><span class="dot" style="background:#2F3B5C"></span>Output buffer</div>
+      <div><span class="dot" style="background:var(--signal)"></span>Mac → headphones over Bluetooth</div>
+    </div>
+
+    <p class="note">Everything blue is tunable. The amber block is <b>170.7 ms that no
+    setting can change</b> — it happens inside the headphones. On a wired link it is
+    89% of the entire budget.</p>
+  </div>
+
+  <div class="install">
+    <div class="code"><span class="c"># build it yourself — nothing to notarize, no Gatekeeper prompt</span>
+brew install scrcpy
+git clone https://github.com/nicglazkov/pixel-audio-bridge.git
+cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
+  </div>
+
+  <section>
+    <span class="eyebrow">The constraint</span>
+    <h2>You cannot do this over Bluetooth</h2>
+    <p>macOS implements the Bluetooth A2DP <strong>source</strong> role only. It has no
+    <strong>sink</strong>. Your Mac will never appear in a phone's Bluetooth output list
+    as a speaker, and there is no setting that changes it.</p>
+    <p>So the audio takes a different road — over ADB, by USB cable or Wi-Fi — and arrives
+    at the Mac as a normal audio stream.</p>
+
+    <div class="path" aria-label="Signal path">
+      <span class="node">Phone</span><span class="arrow">→</span>
+      <span class="node">USB / Wi-Fi</span><span class="arrow">→</span>
+      <span class="node">scrcpy</span><span class="arrow">→</span>
+      <span class="node">CoreAudio</span><span class="arrow">→</span>
+      <span class="node accent">Headphones</span>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Every number here was measured</span>
+    <h2>Measurements, not estimates</h2>
+    <p>This project exists because of a latency budget, so nothing in it is guessed.</p>
+
+    <table>
+      <thead>
+        <tr><th>Quantity</th><th>Value</th><th>How</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mac → AirPods Max, Bluetooth</td>
+          <td class="num">170.7 ms</td>
+          <td class="how">CoreAudio reported device latency</td>
+        </tr>
+        <tr>
+          <td>Wi-Fi jitter to phone</td>
+          <td class="num">6–21 ms</td>
+          <td class="how">20 ping packets, σ 3.6 ms</td>
+        </tr>
+        <tr>
+          <td>Wi-Fi buffer floor</td>
+          <td class="num">200 ms</td>
+          <td class="how">150 ms ran clean twice, then lost 514 ms of audio on the third run</td>
+        </tr>
+        <tr>
+          <td>Wired buffer</td>
+          <td class="num">15 ms</td>
+          <td class="how">Chosen for a jitter-free link; validated by listening, not instrumented</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="caveat"><strong>One honest caveat.</strong> The 15 ms wired buffer is below
+    scrcpy's own 50 ms default and was confirmed by ear rather than by counting dropped
+    samples. If you hear clicks, that is sample-skipping — raise it with
+    <code>--buffer</code>. It sounds like glitches, not lag.</div>
+  </section>
+
+  <section>
+    <span class="eyebrow">What it does not do</span>
+    <h2>Limits worth knowing first</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Phone calls won't capture</h3>
+        <p>Android blocks voice communication from playback capture, and there is no return
+        mic path.</p>
+      </div>
+      <div class="card">
+        <h3>Video on the phone leads</h3>
+        <p>The phone doesn't know its audio was captured, so it never delays video to
+        compensate.</p>
+      </div>
+      <div class="card">
+        <h3>Some apps opt out</h3>
+        <p>Apps can refuse audio capture. Instagram allows it; Spotify does not.</p>
+      </div>
+      <div class="card">
+        <h3>The watchdog isn't a pin</h3>
+        <p>scrcpy can't target a device, so playback stops within ~0.5&nbsp;s of the output
+        changing — not instantly.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="row">
+      <div>MIT licensed · macOS 14+ · built on
+        <a href="https://github.com/Genymobile/scrcpy">scrcpy</a></div>
+      <div><a href="https://github.com/nicglazkov/pixel-audio-bridge">View on GitHub</a></div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+// Both states are drawn on one shared scale (the wireless total), so the wired
+// bar is visibly half as long and the amber segment is identical in both. That
+// comparison is the point of the control.
+const STATES = {
+  wired:    { buffer: 15,  output: 5, bt: 170.7 },
+  wireless: { buffer: 200, output: 5, bt: 170.7 }
+};
+const SCALE = STATES.wireless.buffer + STATES.wireless.output + STATES.wireless.bt;
+
+const el = {
+  buf: document.getElementById('s-buf'),
+  out: document.getElementById('s-out'),
+  bt:  document.getElementById('s-bt'),
+  total: document.getElementById('total'),
+  bar: document.getElementById('bar'),
+  wired: document.getElementById('btn-wired'),
+  wifi: document.getElementById('btn-wifi')
+};
+
+function render(name, animate = true) {
+  const s = STATES[name];
+  const total = s.buffer + s.output + s.bt;
+  const pct = v => (v / SCALE * 100).toFixed(2) + '%';
+
+  if (!animate) el.bar.querySelectorAll('.seg').forEach(n => n.style.transition = 'none');
+  el.buf.style.width = pct(s.buffer);
+  el.out.style.width = pct(s.output);
+  el.bt.style.width  = pct(s.bt);
+  if (!animate) requestAnimationFrame(() =>
+    el.bar.querySelectorAll('.seg').forEach(n => n.style.transition = ''));
+
+  // Only label a segment wide enough to hold the text, otherwise it spills
+  // over its neighbour.
+  const label = (node, v) => node.textContent = (v / SCALE > 0.12) ? v + ' ms' : '';
+  label(el.buf, s.buffer);
+  label(el.bt, s.bt);
+  el.total.textContent = Math.round(total);
+  el.bar.setAttribute('aria-label',
+    `Latency budget, ${name}: ${s.buffer} ms capture buffer, ${s.output} ms output buffer, ` +
+    `170.7 ms Bluetooth, ${Math.round(total)} ms total`);
+
+  el.wired.setAttribute('aria-pressed', String(name === 'wired'));
+  el.wifi.setAttribute('aria-pressed',  String(name === 'wireless'));
+}
+
+el.wired.addEventListener('click', () => render('wired'));
+el.wifi.addEventListener('click',  () => render('wireless'));
+
+// Start collapsed and expand once, so the budget draws itself on arrival.
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduced) {
+  render('wired', false);
+} else {
+  el.bar.querySelectorAll('.seg').forEach(n => n.style.width = '0%');
+  requestAnimationFrame(() => setTimeout(() => render('wired'), 120));
+}
+</script>
+</body>
+</html>

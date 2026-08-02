@@ -78,7 +78,7 @@ export PATH="$FAKEBIN:$PATH"
 PAB_SOURCED=1
 # shellcheck source=/dev/null
 source "$ROOT/bin/pab"
-PABOUTPUT="$FAKEBIN/paboutput"
+export PABOUTPUT="$FAKEBIN/paboutput"
 # pab exports PATH with the real SDK ahead of everything; put the fakes back.
 export PATH="$FAKEBIN:$PATH"
 

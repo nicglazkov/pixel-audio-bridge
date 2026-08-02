@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] 2026-08-02
+
+Signed, notarized distribution. No build tools required to install.
+
+### Added
+- **Signed and notarized by Apple**, so there is no Gatekeeper warning and no
+  right-click-to-open dance.
+- **Homebrew cask**: `brew install --cask nicglazkov/tap/pixel-audio-bridge`,
+  which pulls in scrcpy as a dependency.
+- **DMG and zip** attached to the release, at stable URLs that do not change
+  between versions.
+
+### Fixed
+- **The app is now universal.** It was compiled arm64 only while the
+  documentation claimed Apple silicon and Intel, so it would not have run on an
+  Intel Mac at all. Both slices are now built and merged.
+- `paboutput` moved from Resources to MacOS, where codesign expects an
+  executable. `pab` stays in Resources, since anything in MacOS must carry its
+  own signature and a script's signature lives in an extended attribute that
+  does not reliably survive archiving.
+
 ## [1.0.0] 2026-08-01
 
 First release.
@@ -28,4 +49,5 @@ First release.
   listening rather than by instrumenting sample-skips. Raise it with `--buffer`
   if you hear clicks.
 
+[1.1.0]: https://github.com/nicglazkov/pixel-audio-bridge/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nicglazkov/pixel-audio-bridge/releases/tag/v1.0.0

@@ -278,9 +278,9 @@ final class BridgeController: ObservableObject {
 
     // MARK: Paths
 
-    /// `pab` ships inside the bundle's Resources. There is no meaningful fallback:
-    /// if it is missing the build is broken, and guessing at a path on disk would
-    /// only turn that into a confusing runtime failure somewhere else.
+    /// `pab` ships in the bundle's Resources. There is no meaningful fallback: if
+    /// it is missing the build is broken, and guessing at a path on disk would only
+    /// turn that into a confusing runtime failure somewhere else.
     private var pabPath: String {
         Bundle.main.resourceURL?.appendingPathComponent("pab").path ?? "pab"
     }

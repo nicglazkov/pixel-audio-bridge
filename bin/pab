@@ -71,14 +71,18 @@ PHONE_SERIAL="${_env_phone_serial:-${PHONE_SERIAL:-}}"
 # fallbacks for the GUI case, where the app inherits a minimal PATH.
 export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools:/opt/homebrew/bin"
 
-# paboutput ships beside this script inside the app bundle; fall back to the
-# build directory when running from a source checkout. An exported PABOUTPUT
+# Inside the app bundle this script sits in Resources and paboutput in MacOS,
+# so the sibling directory is checked too. A source checkout falls back to
+# build/. An exported PABOUTPUT wins, which lets the tests substitute a fake;
+# without that override they silently used the real helper, because this path
+# is absolute and so is unaffected by PATH. An exported PABOUTPUT
 # wins, which lets the test suite substitute a fake. Without that override the
 # tests silently used the real helper, because this path is absolute and so is
 # unaffected by PATH.
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if   [ -n "${PABOUTPUT:-}" ] && [ -x "${PABOUTPUT}" ]; then :
 elif [ -x "$SELF_DIR/paboutput" ];          then PABOUTPUT="$SELF_DIR/paboutput"
+elif [ -x "$SELF_DIR/../MacOS/paboutput" ]; then PABOUTPUT="$SELF_DIR/../MacOS/paboutput"
 elif [ -x "$SELF_DIR/../build/paboutput" ]; then PABOUTPUT="$SELF_DIR/../build/paboutput"
 else PABOUTPUT=""
 fi

@@ -48,8 +48,8 @@ brew install --cask nicglazkov/tap/pixel-audio-bridge
 Or download **[PixelAudioBridge.dmg](https://github.com/nicglazkov/pixel-audio-bridge/releases/latest/download/PixelAudioBridge.dmg)**
 and drag it to Applications.
 
-Signed and notarized by Apple and built universal, so it runs on Apple silicon
-and Intel with no Gatekeeper warning to click through.
+Opens like any other Mac app. Apple has checked it for malware, so macOS will
+not warn you or block it. Universal, so it runs on Apple silicon and Intel.
 
 You also need **`adb`**, from the Android SDK. If you have Android Studio it is
 already at `~/Library/Android/sdk/platform-tools`; otherwise

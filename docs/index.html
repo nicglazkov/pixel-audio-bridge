@@ -73,10 +73,8 @@
 
 /* ---- install tabs -------------------------------------------------------- */
 .install{margin-top:30px}
-.tabrow{display:flex;align-items:center;justify-content:space-between;gap:16px;
-  flex-wrap:wrap;margin-bottom:18px}
 .tabs{display:inline-flex;gap:3px;background:var(--tint);border:1px solid var(--line);
-  border-radius:11px;padding:3px}
+  border-radius:11px;padding:3px;margin-bottom:18px}
 .tabs button{appearance:none;border:0;background:transparent;color:var(--ink-2);cursor:pointer;
   font:600 .87rem/1 var(--disp);padding:9px 15px;border-radius:8px;transition:background .16s,color .16s}
 .tabs button:hover{color:var(--ink)}
@@ -94,10 +92,6 @@
 .either .codebox{flex:0 1 auto;min-width:0}
 .or{flex:none;font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
 .either .dl{flex:none}
-.notarized{display:inline-flex;align-items:center;gap:7px;font-size:.83rem;color:var(--ok);
-  border:1px solid color-mix(in srgb,var(--ok) 35%,var(--line));border-radius:99px;
-  padding:5px 12px;background:color-mix(in srgb,var(--ok) 8%,transparent)}
-.notarized svg{width:13px;height:13px}
 
 /* ---- phone setup ---------------------------------------------------------
    Three joined cards rather than three separate ones, because the steps are
@@ -184,24 +178,18 @@
   <section id="install">
     <div class="shead">
       <h2>Install</h2>
-      <p>Signed, notarized and universal, so it runs on Apple silicon and Intel with no
-      Gatekeeper warning to click through.</p>
+      <p>Opens like any other Mac app. Apple has checked it for malware, so macOS will not
+      warn you or block it.</p>
     </div>
 
     <div class="install">
-      <div class="tabrow">
       <div class="tabs" role="tablist" aria-label="Install method">
         <button role="tab" aria-selected="true"  aria-controls="pane-get" id="tab-get">Homebrew or DMG</button>
         <button role="tab" aria-selected="false" aria-controls="pane-src" id="tab-src">Build from source</button>
       </div>
-        <div class="notarized">
-          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2 1.6 3v4.7c0 4 2.7 7.7 6.4 8.6 3.7-.9 6.4-4.6 6.4-8.6V3L8 .2Zm3.4 5.9-4 4a.8.8 0 0 1-1.1 0L4.6 8.4a.8.8 0 1 1 1.1-1.1l1.1 1.1 3.5-3.4a.8.8 0 0 1 1.1 1.1Z"/></svg>
-          Notarized by Apple
-        </div>
-      </div>
 
       <div class="pane" id="pane-get" role="tabpanel" aria-labelledby="tab-get" data-active="true">
-        <p class="why">The same notarized app either way. Homebrew pulls in <code>scrcpy</code>
+        <p class="why">The same app either way, universal for Apple silicon and Intel. Homebrew pulls in <code>scrcpy</code>
         for you and keeps the app current with <code>brew upgrade</code>.</p>
         <div class="either">
           <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>

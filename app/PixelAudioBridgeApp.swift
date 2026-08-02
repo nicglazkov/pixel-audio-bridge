@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Stops the bridge when the app quits, so audio never outlives the app.
-/// Also keeps the app resident when its window is closed — the menu bar item
+/// Also keeps the app resident when its window is closed. The menu bar item
 /// stays live, and closing the window should not silence playback.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {

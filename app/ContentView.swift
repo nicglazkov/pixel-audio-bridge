@@ -99,7 +99,7 @@ struct ContentView: View {
     private func barHeight(_ i: Int, _ t: TimeInterval) -> CGFloat {
         let a = sin(t * 3.1 + Double(i) * 0.9)
         let b = sin(t * 1.7 + Double(i) * 0.45)
-        let v = ((a * 0.6 + b * 0.4) + 1) / 2          // normalise to 0…1
+        let v = ((a * 0.6 + b * 0.4) + 1) / 2          // normalise to 0 through 1
         return 10 + CGFloat(v) * 34
     }
 
@@ -204,8 +204,8 @@ struct ContentView: View {
             .help("On: the chosen device is made your system output, and playback stops within ~0.5s if that ever changes. Off: audio follows the system output wherever it goes, including the built-in speakers.")
 
             Text(bridge.guardOutput
-                 ? "scrcpy plays to the system output and cannot be pinned, so this is a watchdog — expect up to ~0.5 s of audio elsewhere if the device drops mid-stream."
-                 : "Audio will follow your system output — including the built-in speakers.")
+                 ? "scrcpy plays to the system output and cannot be pinned, so this is a watchdog, and up to about 0.5 s of audio can reach another device if it drops mid-stream."
+                 : "Audio will follow your system output, including the built-in speakers.")
                 .font(.system(size: 10.5))
                 .foregroundStyle(bridge.guardOutput ? Color.secondary.opacity(0.7) : Color.orange)
                 .fixedSize(horizontal: false, vertical: true)
@@ -242,13 +242,13 @@ struct ContentView: View {
     // MARK: Actions
 
     // The primary button always toggles on/off, but its label reflects what the
-    // bridge is actually doing — "Turn Off" while it is visibly idle waiting for
+    // bridge is actually doing. "Turn Off" while it is visibly idle waiting for
     // a device reads as though something is wrong.
     private var actionLabel: String {
         guard bridge.enabled else { return "Turn On" }
         switch bridge.state {
-        case .waiting:  return "Waiting for \(bridge.pinnedDeviceLabel)…"
-        case .starting: return "Connecting…"
+        case .waiting:  return "Waiting for \(bridge.pinnedDeviceLabel)"
+        case .starting: return "Connecting"
         default:        return "Turn Off"
         }
     }
@@ -354,7 +354,7 @@ struct MenuBarView: View {
 
     private var menuActionLabel: String {
         guard bridge.enabled else { return "Turn On" }
-        return bridge.state == .waiting ? "Waiting — Turn Off" : "Turn Off"
+        return bridge.state == .waiting ? "Turn Off (waiting)" : "Turn Off"
     }
 
     var body: some View {

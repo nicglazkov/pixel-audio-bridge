@@ -125,7 +125,7 @@ if let decoded = try? JSONDecoder().decode(BridgeInfo.self, from: Data(full.utf8
     check("a complete pab payload decodes", false, "decode threw")
 }
 
-// Fields with Swift defaults must tolerate absence — an older or partial payload
+// Fields with Swift defaults must tolerate absence. An older or partial payload
 // should not take the whole UI down.
 let minimal = """
 {"device":"","device_name":"","device_match":"AirPods Max","output_uid":"",
@@ -146,7 +146,7 @@ do {
     check("a payload omitting optional keys still decodes", false, "\(error)")
 }
 
-// An empty object must degrade to defaults rather than throwing — that is the
+// An empty object must degrade to defaults rather than throwing, which is the
 // whole point of the tolerant decoder.
 if let empty = try? JSONDecoder().decode(BridgeInfo.self, from: Data("{}".utf8)) {
     check("an empty payload degrades to defaults", true)

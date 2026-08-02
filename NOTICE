@@ -7,7 +7,7 @@ This product is licensed under the MIT License; see LICENSE.
 Third-party software
 ------------------------------------------------------------------------------
 
-scrcpy — https://github.com/Genymobile/scrcpy
+scrcpy: https://github.com/Genymobile/scrcpy
   Copyright (C) 2018 Genymobile
   Copyright (C) 2018-2026 Romain Vimont
   Licensed under the Apache License, Version 2.0.
@@ -20,7 +20,7 @@ scrcpy — https://github.com/Genymobile/scrcpy
   A copy of the Apache License, Version 2.0 is available at
   http://www.apache.org/licenses/LICENSE-2.0
 
-Android Debug Bridge (adb) — part of the Android SDK Platform Tools
+Android Debug Bridge (adb): part of the Android SDK Platform Tools
   Copyright (C) The Android Open Source Project
   Licensed under the Apache License, Version 2.0.
   Also an external runtime dependency, installed separately by the user.
@@ -29,8 +29,8 @@ Android Debug Bridge (adb) — part of the Android SDK Platform Tools
 Fonts bundled with the website (docs/assets/fonts)
 ------------------------------------------------------------------------------
 
-Plus Jakarta Sans — Copyright (c) 2020 The Plus Jakarta Sans Project Authors
-JetBrains Mono    — Copyright (c) 2020 The JetBrains Mono Project Authors
+Plus Jakarta Sans: Copyright (c) 2020 The Plus Jakarta Sans Project Authors
+JetBrains Mono:    Copyright (c) 2020 The JetBrains Mono Project Authors
 
   Both licensed under the SIL Open Font License, Version 1.1.
   https://openfontlicense.org

@@ -3,85 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Privacy — Pixel Audio Bridge</title>
+<title>Privacy, Pixel Audio Bridge</title>
 <meta name="description" content="Pixel Audio Bridge collects nothing, sends nothing anywhere, and talks only to your own phone. This site sets no cookies and loads nothing from third parties.">
 <link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="_shared.css">
 <style>
-@font-face{font-family:"Plus Jakarta Sans";src:url(assets/fonts/plus-jakarta-sans-latin.woff2) format("woff2");font-weight:200 800;font-style:normal;font-display:swap}
-@font-face{font-family:"JetBrains Mono";src:url(assets/fonts/jetbrains-mono-latin.woff2) format("woff2");font-weight:100 800;font-style:normal;font-display:swap}
-
-:root{
-  --bg:#FFFFFF; --tint:#F7F8FC; --ink:#0F1117; --ink-2:#5A6175; --ink-3:#8A91A3;
-  --line:#E6E9F2; --indigo:#5B3FE0; --ok:#0F8A57;
-  --disp:"Plus Jakarta Sans",system-ui,-apple-system,sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;
-}
-@media (prefers-color-scheme:dark){
-  :root{--bg:#0B0D13;--tint:#141824;--ink:#EDEFF6;--ink-2:#98A0B4;--ink-3:#6E7689;
-        --line:#222739;--indigo:#8B72FF;--ok:#3DDC91}
-}
-:root[data-theme="light"]{--bg:#FFFFFF;--tint:#F7F8FC;--ink:#0F1117;--ink-2:#5A6175;--ink-3:#8A91A3;
-  --line:#E6E9F2;--indigo:#5B3FE0;--ok:#0F8A57}
-:root[data-theme="dark"]{--bg:#0B0D13;--tint:#141824;--ink:#EDEFF6;--ink-2:#98A0B4;--ink-3:#6E7689;
-  --line:#222739;--indigo:#8B72FF;--ok:#3DDC91}
-
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--disp);font-size:16.5px;
-     line-height:1.72;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
-.wrap{max-width:1140px;margin:0 auto;padding:0 30px}
-.doc{max-width:64ch}
-a{color:var(--indigo);text-decoration:none;font-weight:500}
-a:hover{text-decoration:underline}
-:focus-visible{outline:2px solid var(--indigo);outline-offset:3px;border-radius:6px}
-h1,h2,h3{margin:0;letter-spacing:-.03em;line-height:1.15}
-h1{font-size:clamp(1.9rem,3.6vw,2.6rem);font-weight:700}
-h2{font-size:1.24rem;font-weight:700;margin:44px 0 12px}
-h3{font-size:1rem;font-weight:600;margin:26px 0 8px}
-p{margin:0 0 1em;color:var(--ink-2)}
-p.big{color:var(--ink);font-size:1.06rem}
-strong{color:var(--ink);font-weight:600}
-
-nav{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
-nav .brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
-nav .brand:hover{text-decoration:none}
-nav .brand img{width:30px;height:30px;border-radius:8px}
-nav .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
-.iconbtn{height:36px;width:36px;display:inline-flex;align-items:center;justify-content:center;
-  border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
-.iconbtn:hover{background:var(--tint);border-color:var(--ink-3)}
-.iconbtn svg{width:17px;height:17px}
-.iconbtn .moon{display:none}
-:root[data-theme="dark"] .iconbtn .moon{display:block}
-:root[data-theme="dark"] .iconbtn .sun{display:none}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .iconbtn .moon{display:block}
-  :root:not([data-theme="light"]) .iconbtn .sun{display:none}
-}
-
+.doc{max-width:66ch}
+.doc h2{font-size:1.24rem;margin:44px 0 12px}
+.doc h3{font-size:1rem;margin:26px 0 8px}
+.doc p{color:var(--ink-2)}
+.doc strong{color:var(--ink);font-weight:600}
 header.top{padding:56px 0 0}
-.updated{font-family:var(--mono);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
-
+.updated{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
 .tldr{border:1px solid var(--line);background:var(--tint);border-radius:14px;padding:22px 24px;margin:26px 0 0}
 .tldr p{margin:0;color:var(--ink)}
 .tldr .tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.71rem;
   letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px}
 .tldr .tag .d{width:7px;height:7px;border-radius:50%;background:var(--ok)}
-
 table{width:100%;border-collapse:collapse;margin:18px 0 22px;font-size:.9rem}
 th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
    color:var(--ink-3);font-weight:400;padding:9px 12px;border-bottom:1px solid var(--line)}
 td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
 td code{font-family:var(--mono);font-size:.84em;color:var(--ink)}
-
+td strong{color:var(--ink)}
 .callout{border:1px solid var(--line);border-left:3px solid var(--indigo);border-radius:0 12px 12px 0;
   padding:16px 20px;margin:22px 0;background:var(--tint)}
 .callout p{margin:0;font-size:.94rem}
-
-footer{border-top:1px solid var(--line);padding:30px 0 60px;margin-top:56px;color:var(--ink-2);font-size:.86rem;
-       display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-footer a{color:var(--ink-2);font-weight:400}
-footer .l{display:flex;gap:18px;flex-wrap:wrap}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+footer{margin-top:56px}
 </style>
 </head>
 <body>
@@ -90,6 +38,8 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
   <nav>
     <a class="brand" href="./"><img src="assets/icon.png" alt="">Pixel Audio Bridge</a>
     <span class="sp">
+      <a class="navlink" href="privacy.html" aria-current="page">Privacy</a>
+      <a class="navlink" href="security.html">Security</a>
       <button class="iconbtn" id="theme" type="button" aria-label="Switch between light and dark">
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/></svg>
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg>
@@ -107,7 +57,7 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
     </div>
     <p style="margin-top:22px">Pixel Audio Bridge is a local utility. It has no backend, no
     account system, and no analytics. Everything below can be checked against the source in
-    the repository — that's the point of writing it this way.</p>
+    the repository, which is the point of writing it this way.</p>
   </header>
 
   <main class="doc">
@@ -116,7 +66,7 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
     <p>Audio captured from your phone is played through your Mac's output device and then
     discarded. <strong>It is never written to disk, buffered to a file, or transmitted
     anywhere.</strong> Capture is performed by scrcpy and reaches your speakers through
-    CoreAudio; nothing in between retains it.</p>
+    CoreAudio, and nothing in between retains it.</p>
 
     <h2>Network activity</h2>
     <p>The app makes <strong>no requests to any server operated by the author, or to any third
@@ -130,8 +80,8 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
         <tr><td>Your local network, via <code>adb</code> over TCP</td><td>Wireless mode</td><td>Audio stream from your phone</td></tr>
       </tbody>
     </table>
-    <p>Wireless mode connects to a private address on your own network. That traffic does not
-    leave your network.</p>
+    <p>Wireless mode connects to a private address on your own network, and that traffic does
+    not leave your network.</p>
 
     <h2>What is stored on your Mac</h2>
     <table>
@@ -150,7 +100,7 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
         <tr>
           <td><code>$TMPDIR/pixel-audio-bridge/bridge.log</code></td>
           <td>Diagnostic output from the current session, including device names and adb serials</td>
-          <td>So <code>pab doctor</code> and “Open Log” can help when something breaks</td>
+          <td>So <code>pab doctor</code> and Open Log can help when something breaks</td>
         </tr>
       </tbody>
     </table>
@@ -160,7 +110,7 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
     <h3>What it can see about your devices</h3>
     <p>To function, the app reads your connected audio output devices (names and CoreAudio
     identifiers) and your connected Android devices (adb serials, plus the phone's model name
-    and Wi‑Fi address). This stays on your Mac and appears only in the app's own interface
+    and Wi-Fi address). This stays on your Mac and appears only in the app's own interface
     and log.</p>
 
     <h2>A security note about ADB</h2>
@@ -168,8 +118,9 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
       <p>Wireless mode requires Android Debug Bridge over TCP. <strong>While that is enabled,
       any device on the same network that can reach your phone may attempt to connect to
       it</strong>, subject to Android's authorisation prompt. This is a property of ADB
-      itself, not of this app. It resets when your phone reboots — and if it concerns you,
-      the USB cable is both safer and lower latency.</p>
+      itself, not of this app. It resets when your phone reboots, and if it concerns you the
+      USB cable is both safer and lower latency. See the
+      <a href="security.html">security page</a> for the full threat model.</p>
     </div>
 
     <h2>This website</h2>
@@ -184,7 +135,7 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
     </table>
     <div class="callout">
       <p><strong>One thing outside our control.</strong> This site is hosted on GitHub Pages,
-      and GitHub receives standard web-server information when you visit — including your IP
+      and GitHub receives standard web-server information when you visit, including your IP
       address and user agent. That is GitHub's processing, under
       <a href="https://docs.github.com/site-policy/privacy-policies/github-privacy-statement">GitHub's
       Privacy Statement</a>. We neither receive nor have access to it.</p>
@@ -202,35 +153,20 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
     <h2>Contact</h2>
     <p>Open an issue on
     <a href="https://github.com/nicglazkov/pixel-audio-bridge/issues">GitHub</a>. For security
-    matters, please use
-    <a href="https://github.com/nicglazkov/pixel-audio-bridge/blob/main/SECURITY.md">private
-    reporting</a> instead.</p>
+    matters, please use <a href="security.html">private reporting</a> instead.</p>
   </main>
 
   <footer>
     <span class="l">
       <a href="./">Home</a>
+      <a href="security.html">Security</a>
       <a href="https://github.com/nicglazkov/pixel-audio-bridge/blob/main/LICENSE">MIT licence</a>
-      <a href="https://github.com/nicglazkov/pixel-audio-bridge/blob/main/SECURITY.md">Security</a>
       <a href="https://github.com/Genymobile/scrcpy">Built on scrcpy</a>
     </span>
     <span>No accounts, no telemetry, no third-party requests.</span>
   </footer>
 
 </div>
-<script>
-(function () {
-  var root = document.documentElement, saved = null;
-  try { saved = localStorage.getItem("theme"); } catch (e) {}
-  if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved);
-  document.getElementById("theme").addEventListener("click", function () {
-    var systemDark = matchMedia("(prefers-color-scheme: dark)").matches;
-    var current = root.getAttribute("data-theme") || (systemDark ? "dark" : "light");
-    var next = current === "dark" ? "light" : "dark";
-    root.setAttribute("data-theme", next);
-    try { localStorage.setItem("theme", next); } catch (e) {}
-  });
-})();
-</script>
+<script src="theme.js"></script>
 </body>
 </html>

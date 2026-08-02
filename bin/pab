@@ -1,18 +1,18 @@
 #!/bin/bash
-# pab — Pixel Audio Bridge
+# pab: Pixel Audio Bridge
 #
 # Streams audio from an Android phone to this Mac's current output device.
 #
 # scrcpy plays the audio itself, through SDL, to whatever macOS calls the
 # default output. This is the lowest-latency arrangement available: one process,
 # one buffer, no encode/mux/pipe/demux stage. It is also why there is no hard
-# guarantee about which device audio reaches — scrcpy cannot target one.
+# guarantee about which device audio reaches, because scrcpy cannot target one.
 #
 # The safety mechanism is therefore a WATCHDOG, not a pin: while running, the
 # default output device is polled, and the bridge is killed the moment it stops
 # being the expected device. That leaves a sub-second window on a mid-stream
 # disconnect. A previous design routed playback through mpv, which could pin a
-# device by UID and refuse to fall back — zero exposure, but ~200ms more latency
+# device by UID and refuse to fall back: zero exposure, but ~200ms more latency
 # as shipped and ~10ms more even when tuned. The trade was made deliberately.
 
 set -uo pipefail
@@ -28,7 +28,7 @@ LOG_FILE="$RUN_DIR/bridge.log"
 # Wi-Fi 200 is measured: at 50ms a 15s run skipped 4 times, and 150ms was clean
 # twice then lost 514ms of audio on the third run. 200ms was clean three times.
 #
-# USB 15 is NOT measured — it is a deliberate choice for minimum latency on a
+# USB 15 is NOT measured. It is a deliberate choice for minimum latency on a
 # jitter-free link, below scrcpy's own 50ms default. If audio clicks or drops
 # out, that is sample-skipping: raise this. It will sound like glitches, not lag.
 BUFFER_USB=15
@@ -82,13 +82,13 @@ fi
 log()  { printf '%s %s\n' "$(date '+%H:%M:%S')" "$*" >&2; }
 die()  { log "ERROR: $*"; exit 1; }
 
-# Values emitted as JSON are device UIDs, adb serials, IPs and model names —
+# Values emitted as JSON are device UIDs, adb serials, IPs and model names,
 # no control characters, so quotes and backslashes are the only escaping needed.
 esc_json() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
 save_config() {
     cat > "$CONFIG_FILE" <<EOF
-# pixel-audio-bridge config — written by 'pab'
+# pixel-audio-bridge config, written by 'pab'
 PHONE_IP="$PHONE_IP"
 AIRPODS_MATCH="$AIRPODS_MATCH"
 OUTPUT_UID="$_cfg_output_uid"
@@ -197,10 +197,10 @@ select_transport() {
 
     case "$want" in
         usb)
-            [ -z "$usb" ] && die "no USB device — plug the phone in, or use --transport wifi"
+            [ -z "$usb" ] && die "no USB device. Plug the phone in, or use --transport wifi"
             echo "$usb $BUFFER_USB wired" ;;
         wifi)
-            tcp=$(connect_wireless) || die "no wireless device and no known phone IP — connect over USB once to learn it"
+            tcp=$(connect_wireless) || die "no wireless device and no known phone IP. Connect over USB once to learn it"
             [ -z "$tcp" ] && die "could not reach $PHONE_IP:$ADB_PORT (phone asleep, or 'adb tcpip $ADB_PORT' needed over USB)"
             echo "$tcp $BUFFER_WIFI wireless" ;;
         auto)
@@ -264,7 +264,7 @@ cmd_run() {
 
     local target="" target_name=""
     if [ "$GUARD" = "1" ]; then
-        [ -z "$PABOUTPUT" ] && die "paboutput helper not found — cannot verify the output device"
+        [ -z "$PABOUTPUT" ] && die "paboutput helper not found, so the output device cannot be verified"
         target=$(target_output_uid)
         if [ -z "$target" ]; then
             if [ -n "$OUTPUT_UID" ]; then
@@ -282,11 +282,11 @@ cmd_run() {
             "$PABOUTPUT" set "$target" || die "could not make '$target_name' the default output"
             sleep 0.3
             current=$(default_output_uid)
-            [ "$current" != "$target" ] && die "default output is still '$(default_output_name)' — refusing to start"
+            [ "$current" != "$target" ] && die "default output is still '$(default_output_name)', so refusing to start"
         fi
         log "output: $target_name (watchdog armed)"
     else
-        log "output guard DISABLED — playing to '$(default_output_name)', whatever it becomes"
+        log "output guard DISABLED, playing to '$(default_output_name)', whatever it becomes"
     fi
 
     # select_transport runs in a command substitution, so a die() inside it exits
@@ -329,7 +329,7 @@ cmd_run() {
                 sleep 0.5
                 now=$("$PABOUTPUT" get 2>/dev/null | cut -f1)
                 if [ "$now" != "$target" ]; then
-                    log "default output changed to '${now:-none}' — killing bridge"
+                    log "default output changed to '${now:-none}', killing bridge"
                     kill -TERM -- "-$pgid" 2>/dev/null
                     break
                 fi
@@ -339,7 +339,7 @@ cmd_run() {
     fi
 
     trap 'stop_bridge; exit 0' TERM INT
-    log "bridge running (pgid $pgid) — audio should reach ${target_name:-the default output} shortly"
+    log "bridge running (pgid $pgid), audio should reach ${target_name:-the default output} shortly"
     wait "$pgid"
     local rc=$?
     [ -n "$watchdog" ] && kill "$watchdog" 2>/dev/null
@@ -433,12 +433,12 @@ cmd_enable_wireless() {
     adb -s "$usb" tcpip "$ADB_PORT" >/dev/null 2>&1
     sleep 2
     adb connect "$PHONE_IP:$ADB_PORT" 2>&1 | sed 's/^/  /'
-    log "wireless enabled — this resets when the phone reboots"
+    log "wireless enabled. This resets when the phone reboots"
 }
 
 usage() {
     cat <<'EOF'
-pab — Pixel Audio Bridge
+pab: Pixel Audio Bridge
 
   pab run [options]   Stream phone audio to this Mac's output device.
                       Blocks until stopped.

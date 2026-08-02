@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please run `./bin/pab doctor` and paste the output below — it reports
+        Please run `./bin/pab doctor` and paste the output below. It reports
         dependencies, output devices, adb transports and config in one go, and
         answers most of the questions I'd otherwise have to ask.
   - type: textarea
@@ -53,5 +53,5 @@ body:
     id: log
     attributes:
       label: Relevant lines from the log
-      description: "Open Log in the app, or `$TMPDIR/pixel-audio-bridge/bridge.log`. Redact anything you'd rather not share — it can contain device names and local IP addresses."
+      description: "Open Log in the app, or `$TMPDIR/pixel-audio-bridge/bridge.log`. Redact anything you'd rather not share, since it can contain device names and local IP addresses."
       render: shell

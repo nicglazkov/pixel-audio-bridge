@@ -1,0 +1,113 @@
+/* Shared by index, privacy and security so the three pages cannot drift apart.
+   Fonts are self-hosted: the site makes no third-party requests at all, which is
+   what lets the privacy policy say so without an asterisk. */
+
+@font-face{
+  font-family:"Plus Jakarta Sans";
+  src:url(assets/fonts/plus-jakarta-sans-latin.woff2) format("woff2");
+  font-weight:200 800;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:"JetBrains Mono";
+  src:url(assets/fonts/jetbrains-mono-latin.woff2) format("woff2");
+  font-weight:100 800;font-style:normal;font-display:swap;
+}
+
+/* Light is the default. The OS preference applies automatically, and an explicit
+   [data-theme] on <html> beats it in either direction, so the toggle still works
+   when it disagrees with the system. */
+:root{
+  --bg:#FFFFFF; --tint:#F7F8FC; --ink:#0F1117; --ink-2:#5A6175; --ink-3:#8A91A3;
+  --line:#E6E9F2; --indigo:#5B3FE0; --ok:#0F8A57; --warn:#B45309;
+  --shot-ring:rgba(15,17,23,.10); --shadow:0 30px 60px -28px rgba(15,17,23,.42);
+  --disp:"Plus Jakarta Sans",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0B0D13; --tint:#141824; --ink:#EDEFF6; --ink-2:#98A0B4; --ink-3:#6E7689;
+    --line:#222739; --indigo:#8B72FF; --ok:#3DDC91; --warn:#E0A32E;
+    --shot-ring:rgba(255,255,255,.10); --shadow:0 34px 70px -30px #000;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#FFFFFF; --tint:#F7F8FC; --ink:#0F1117; --ink-2:#5A6175; --ink-3:#8A91A3;
+  --line:#E6E9F2; --indigo:#5B3FE0; --ok:#0F8A57; --warn:#B45309;
+  --shot-ring:rgba(15,17,23,.10); --shadow:0 30px 60px -28px rgba(15,17,23,.42);
+}
+:root[data-theme="dark"]{
+  --bg:#0B0D13; --tint:#141824; --ink:#EDEFF6; --ink-2:#98A0B4; --ink-3:#6E7689;
+  --line:#222739; --indigo:#8B72FF; --ok:#3DDC91; --warn:#E0A32E;
+  --shot-ring:rgba(255,255,255,.10); --shadow:0 34px 70px -30px #000;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--disp);font-size:16.5px;
+     line-height:1.68;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
+.wrap{max-width:1140px;margin:0 auto;padding:0 30px}
+a{color:var(--indigo);text-decoration:none;font-weight:500}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--indigo);outline-offset:3px;border-radius:6px}
+h1,h2,h3{margin:0;letter-spacing:-.032em;line-height:1.1}
+h1{font-size:clamp(2.25rem,4.3vw,3.3rem);font-weight:700}
+h2{font-size:clamp(1.45rem,2.7vw,1.95rem);font-weight:700}
+h3{font-size:.98rem;font-weight:600;letter-spacing:-.012em}
+p{margin:0 0 1em}
+
+/* ---- nav ---------------------------------------------------------------- */
+nav{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
+nav .brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+nav .brand:hover{text-decoration:none}
+nav .brand img{width:30px;height:30px;border-radius:8px}
+nav .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+nav .navlink{color:var(--ink-2);font-weight:500;font-size:.9rem;padding:8px 10px;border-radius:8px}
+nav .navlink:hover{text-decoration:none;color:var(--ink);background:var(--tint)}
+nav .navlink[aria-current="page"]{color:var(--ink);background:var(--tint)}
+
+/* Fixed-height flex controls so the button and the links share a baseline. */
+.iconbtn,.ghbtn{
+  height:36px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:9px;font-weight:600;font-size:.87rem;font-family:var(--disp);
+  border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;
+  padding:0 14px;line-height:1;transition:background .16s,border-color .16s;
+}
+.iconbtn{width:36px;padding:0}
+.iconbtn:hover,.ghbtn:hover{background:var(--tint);text-decoration:none;border-color:var(--ink-3)}
+.ghbtn svg{width:16px;height:16px;flex:none}
+.iconbtn svg{width:17px;height:17px}
+.iconbtn .moon{display:none}
+:root[data-theme="dark"] .iconbtn .moon{display:block}
+:root[data-theme="dark"] .iconbtn .sun{display:none}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .iconbtn .moon{display:block}
+  :root:not([data-theme="light"]) .iconbtn .sun{display:none}
+}
+
+.btn{display:inline-flex;align-items:center;gap:9px;height:42px;padding:0 20px;border-radius:10px;
+     font-weight:600;font-size:.93rem;line-height:1}
+.btn.primary{background:var(--indigo);color:#fff}
+.btn.primary:hover{text-decoration:none;filter:brightness(1.08)}
+.btn.primary svg{width:16px;height:16px;flex:none}
+.btn.secondary{border:1px solid var(--line);color:var(--ink)}
+.btn.secondary:hover{text-decoration:none;background:var(--tint);border-color:var(--ink-3)}
+
+section{padding:76px 0}
+.shead{max-width:60ch}
+.shead p{color:var(--ink-2);margin-top:10px}
+
+.codebox{background:var(--tint);border:1px solid var(--line);color:var(--ink);border-radius:12px;
+  padding:20px 22px;font-family:var(--mono);font-size:.83rem;white-space:pre;overflow-x:auto;
+  line-height:1.85}
+.codebox .c{color:var(--ink-3)}
+
+footer{border-top:1px solid var(--line);padding:30px 0 60px;color:var(--ink-2);font-size:.86rem;
+       display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer a{color:var(--ink-2);font-weight:400}
+footer .l{display:flex;gap:18px;flex-wrap:wrap}
+
+@media (max-width:880px){
+  nav .navlink{display:none}
+  section{padding:52px 0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}

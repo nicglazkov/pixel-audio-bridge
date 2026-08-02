@@ -22,13 +22,13 @@ it. I'll acknowledge within a week. Since this is a spare-time project, I can't
 promise a fix deadline, but I will tell you honestly what I intend to do and
 when.
 
-## Threat model — what this software actually does
+## Threat model: what this software actually does
 
 Worth understanding before reporting, and worth knowing before you install it:
 
 - **It runs entirely locally.** No server, no accounts, no network calls to any
   third party. See [PRIVACY.md](PRIVACY.md).
-- **It executes two external binaries** — `scrcpy` and `adb` — resolved from
+- **It executes two external binaries**, `scrcpy` and `adb`, resolved from
   your `PATH`, falling back to Homebrew and the Android SDK's standard
   locations. If an attacker can already write to a directory on your `PATH`,
   they can already run code as you; this app does not widen that.
@@ -47,7 +47,7 @@ Worth understanding before reporting, and worth knowing before you install it:
 While that is enabled, any host on the same network that can reach your phone
 may attempt to connect to it, subject to Android's own authorisation prompt.
 This is inherent to ADB. It resets when the phone reboots. Use USB if this
-matters to you — it is also faster.
+matters to you, and it is also faster.
 
 **The output watchdog is not instantaneous.** When the output device changes
 mid-stream, playback is killed within about half a second, not immediately.

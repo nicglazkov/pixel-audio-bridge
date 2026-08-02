@@ -19,8 +19,8 @@ enum Transport: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .auto: return "USB when plugged in, otherwise Wi-Fi"
-        case .usb:  return "USB cable · 15 ms buffer · lowest latency"
-        case .wifi: return "Wi-Fi · 200 ms buffer · best for music and podcasts"
+        case .usb:  return "USB cable, 15 ms buffer, lowest latency"
+        case .wifi: return "Wi-Fi, 200 ms buffer, good for music and podcasts"
         }
     }
 
@@ -50,7 +50,7 @@ enum BridgeState: Equatable {
 
 // Swift's synthesised Decodable ignores a property's default value and throws on
 // a missing key. Since `pab` ships inside the bundle but can be replaced, any
-// version skew would fail the whole decode — and refresh() discards decode
+// version skew would fail the whole decode, and refresh() discards decode
 // errors, so the UI would silently go blank. Optional fields are therefore
 // decoded explicitly with decodeIfPresent.
 
@@ -163,7 +163,7 @@ enum BridgeLogic {
 
     /// Phones reachable over the chosen link, one entry per physical handset.
     /// The same phone appears twice when USB and wireless ADB are both live, so
-    /// entries are collapsed by hardware serial, keeping the USB one — which is
+    /// entries are collapsed by hardware serial, keeping the USB one, which is
     /// what `auto` would pick anyway.
     static func availablePhones(_ phones: [PhoneDevice], transport: Transport) -> [PhoneDevice] {
         let onThisLink: [PhoneDevice]
@@ -184,7 +184,7 @@ enum BridgeLogic {
         available.contains { $0.serial == selected } ? selected : ""
     }
 
-    /// An explicitly chosen phone decides the link on its own — its serial
+    /// An explicitly chosen phone decides the link on its own, since its serial
     /// already encodes whether it is USB or Wi-Fi.
     static func resolvedWired(selectedPhone: String, transport: Transport, usbPresent: Bool) -> Bool {
         if !selectedPhone.isEmpty { return !selectedPhone.contains(":") }
@@ -320,7 +320,7 @@ final class BridgeController: ObservableObject {
     }
 
     /// True when the output that would actually be used is present. A remembered
-    /// selection that has been disconnected counts as unavailable — the bridge
+    /// selection that has been disconnected counts as unavailable, so the bridge
     /// waits rather than routing somewhere else.
     var outputAvailable: Bool {
         if !guardOutput { return true }        // no specific device to wait for
@@ -347,7 +347,7 @@ final class BridgeController: ObservableObject {
         return "Not connected"
     }
 
-    /// Names the phone the way its owner would — model and link — rather than by
+    /// Names the phone the way its owner would, model and link, rather than by
     /// its adb serial, which is an IP address over Wi-Fi and means nothing to a
     /// person reading it.
     var phoneDescription: String {
@@ -357,15 +357,15 @@ final class BridgeController: ObservableObject {
         guard !serial.isEmpty else { return "Not reachable" }
         let link = serial.contains(":") ? "Wi-Fi" : "USB"
         let model = info.phones.first { $0.serial == serial }?.model
-        return "\(model ?? serial) · \(link)"
+        return "\(model ?? serial) on \(link)"
     }
 
     var statusText: String {
         switch state {
         case .off:              return "Off"
         case .waiting:          return "Waiting for \(pinnedDeviceLabel)"
-        case .starting:         return "Connecting…"
-        case .streaming:        return guardOutput ? "Streaming" : "Streaming — \(info.default_name)"
+        case .starting:         return "Connecting"
+        case .streaming:        return guardOutput ? "Streaming" : "Streaming to \(info.default_name)"
         case .failed(let msg):  return msg
         }
     }
@@ -384,7 +384,7 @@ final class BridgeController: ObservableObject {
 
     func onLaunch() {
         // A previous run may have been force-quit, leaving orphans holding the
-        // audio device. Clear them before claiming it — off the main thread, so
+        // audio device. Clear them before claiming it, off the main thread so
         // the window paints immediately instead of waiting on a subprocess.
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.runSync(["stop"])
@@ -417,7 +417,7 @@ final class BridgeController: ObservableObject {
     /// appearing or vanishing is picked up without any explicit event plumbing.
     func evaluate() {
         guard !helperMissing else {
-            state = .failed("Bridge helper missing from the app bundle — rebuild with ./build.sh")
+            state = .failed("Bridge helper missing from the app bundle. Rebuild with ./build.sh")
             return
         }
         guard enabled else {
@@ -549,7 +549,7 @@ final class BridgeController: ObservableObject {
         guard enabled else { state = .off; return }
 
         // The pinned device vanished mid-stream (headphones removed, or gone to
-        // standby). That is expected, not a failure — wait for it to return
+        // standby). That is expected, not a failure, so wait for it to return
         // instead of burning retries and surfacing an error.
         if guardOutput && !outputAvailable {
             state = .waiting
@@ -567,7 +567,7 @@ final class BridgeController: ObservableObject {
             return
         }
 
-        state = .failed(lastError.isEmpty ? "Reconnecting…" : lastError)
+        state = .failed(lastError.isEmpty ? "Reconnecting" : lastError)
         let delay = Double(consecutiveFailures) * 3.0
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, self.process == nil, !self.stoppingIntentionally else { return }

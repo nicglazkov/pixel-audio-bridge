@@ -11,9 +11,9 @@
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-6E7689)
 ![191 ms wired](https://img.shields.io/badge/latency-191%20ms%20wired-0F8A57)
 
-**[Website](https://nicglazkov.github.io/pixel-audio-bridge/)** ·
-[Behaviour](#what-happens-when) ·
-[Latency](#where-the-191-milliseconds-go) ·
+**[Website](https://nicglazkov.github.io/pixel-audio-bridge/)** |
+[Behaviour](#how-it-reacts) |
+[Latency](#where-the-191-milliseconds-go) |
 [Privacy](PRIVACY.md)
 
 <img src="docs/assets/app-streaming.png" width="380" alt="The Pixel Audio Bridge window, streaming from a Pixel 6 Pro over Wi-Fi">
@@ -26,8 +26,8 @@ AirPods Max can only hold one connection at a time. Instead of unpairing them
 from your Mac every time your phone plays something, this brings the phone's
 audio across.
 
-You can't do it over Bluetooth. macOS implements the A2DP **source** role only —
-it has no **sink** — so a Mac can never appear in a phone's Bluetooth output list
+You can't do it over Bluetooth. macOS implements the A2DP **source** role only
+and has no **sink**, so a Mac can never appear in a phone's Bluetooth output list
 as a speaker. The audio travels over ADB instead, by USB cable or Wi-Fi.
 
 ## What you need
@@ -58,7 +58,7 @@ Plug the phone in and accept the debugging prompt. For wireless, run
 Because you build it yourself there's nothing to notarize and no Gatekeeper
 prompt to work around.
 
-## What happens when…
+## How it reacts
 
 You never start this, stop it, or switch it over. It reacts:
 
@@ -79,12 +79,12 @@ Every figure here was measured on real hardware.
 |---|---|---|
 | Capture buffer | 15 ms | tunable |
 | Output buffer | 5 ms | tunable |
-| **Bluetooth, inside the headphones** | **170.7 ms** | **fixed — 89% of the budget** |
+| **Bluetooth, inside the headphones** | **170.7 ms** | **fixed, 89% of the budget** |
 | **Total** | **191 ms** | |
 
 That last row is not ours to fix. No setting on either machine changes it, so
 everything this software controls is the other twenty milliseconds. Over Wi-Fi
-the buffer grows to 200 ms and the total reaches 376 ms — fine for music,
+the buffer grows to 200 ms and the total reaches 376 ms, which is fine for music but
 noticeable on video.
 
 <details>
@@ -93,13 +93,13 @@ noticeable on video.
 | Quantity | Value | Method |
 |---|---|---|
 | Mac → AirPods Max, Bluetooth | 170.7 ms | CoreAudio reported device latency |
-| Wi-Fi jitter to phone | 6–21 ms, σ 3.6 | 20 ping packets |
-| Wi-Fi buffer floor | 200 ms | 50 ms → 4 skips · 150 ms → clean, clean, **29 skips** · 200 ms → clean ×3 |
+| Wi-Fi jitter to phone | 6 to 21 ms, sigma 3.6 | 20 ping packets |
+| Wi-Fi buffer floor | 200 ms | 50 ms gave 4 skips, 150 ms gave clean, clean, **29 skips**, 200 ms gave clean three times |
 | Wired buffer | 15 ms | chosen for a jitter-free link; validated by listening, not instrumented |
 
 **The 15 ms wired buffer is the one figure that is not instrumented.** scrcpy's
 own default is 50 ms. If you hear clicks or brief dropouts, that's sample
-skipping — raise it with `--buffer`. It sounds like glitches, not lag.
+skipping, so raise it with `--buffer`. It sounds like glitches, not lag.
 
 </details>
 
@@ -114,7 +114,7 @@ scrcpy --no-video --no-window --no-control
 ```
 
 **`--audio-source=playback`** uses Android's `AudioPlaybackCapture`, which taps
-each app's PCM *before* stream volume is applied — so the phone's volume slider
+each app's PCM *before* stream volume is applied, so the phone's volume slider
 is irrelevant. The alternative, `--audio-source=output` (`REMOTE_SUBMIX`),
 captures post-volume and records silence whenever the phone's media stream is
 muted. Apps can opt out of `playback`; Instagram does not, Spotify does.
@@ -143,7 +143,7 @@ mid-stream, macOS reassigns default output to the built-in speakers, and up to
 half a second of audio can reach them before the watchdog fires.
 
 Setting the default device is verified by reading the property back rather than
-trusting the return code — CoreAudio returns `noErr` for devices that then
+trusting the return code, because CoreAudio returns `noErr` for devices that then
 refuse to become default, and at least one popular tool reports success in that
 case.
 
@@ -164,7 +164,7 @@ pab run [--wired|--wireless]   # stream; blocks until stopped
 pab stop | status | info | doctor | enable-wireless
 ```
 
-`pab doctor` is the place to start when something is wrong — it reports
+`pab doctor` is the place to start when something is wrong. It reports
 dependencies, output devices, adb transports and config in one go.
 
 ## Configuration
@@ -178,7 +178,7 @@ OUTPUT_UID=""                 # pin a specific CoreAudio device
 PHONE_SERIAL=""               # pin a specific phone
 ```
 
-`AIRPODS_MATCH` is just a name filter — set it to any output device you own.
+`AIRPODS_MATCH` is just a name filter. Set it to any output device you own.
 
 ## Limitations
 
@@ -203,8 +203,11 @@ logic lives in `BridgeLogic`, free of `UserDefaults`, timers and processes. See
 ## Privacy and security
 
 No accounts, no telemetry, no network calls to anyone but your own phone. The
-website loads nothing from third parties — fonts are self-hosted for exactly
-that reason. See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
+website loads nothing from third parties, and fonts are self-hosted for exactly
+that reason. See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md), or the
+formatted versions on the site:
+[privacy](https://nicglazkov.github.io/pixel-audio-bridge/privacy.html) and
+[security](https://nicglazkov.github.io/pixel-audio-bridge/security.html).
 
 ## Built with
 
@@ -214,4 +217,4 @@ This project is the macOS front end, the device logic, and the watchdog. See
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

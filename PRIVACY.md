@@ -4,7 +4,7 @@
 
 Pixel Audio Bridge is a local utility. It has no backend, no account system, and
 no analytics. This document describes exactly what it touches, and is written to
-be checkable — every claim here can be verified against the source in this
+be checkable, so every claim here can be verified against the source in this
 repository.
 
 ## The short version
@@ -35,7 +35,7 @@ The only network traffic it causes is between your Mac and your own phone:
 | USB cable, via `adb` | Wired mode | Audio stream from your phone |
 | Your local network, via `adb` over TCP | Wireless mode | Audio stream from your phone |
 
-Wireless mode connects to a private address on your own network — typically
+Wireless mode connects to a private address on your own network, typically
 something like `192.168.x.x:5555`. That traffic does not leave your network.
 
 ### What is stored on your Mac
@@ -64,7 +64,7 @@ network that can reach your phone may attempt to connect to it**, subject to
 Android's authorisation prompt. This is a property of ADB itself, not of this
 app.
 
-It resets whenever your phone reboots. If that concerns you, use the USB cable —
+It resets whenever your phone reboots. If that concerns you, use the USB cable,
 which is also the lower-latency option.
 
 ## The website
@@ -80,7 +80,7 @@ This site is a set of static files served by GitHub Pages.
   light or dark mode. It never leaves your browser.
 
 **One thing outside our control:** the site is hosted on GitHub Pages, and
-GitHub receives standard web-server information when you visit — including your
+GitHub receives standard web-server information when you visit, including your
 IP address and user agent. That is GitHub's processing, under
 [GitHub's Privacy Statement](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement).
 We neither receive nor have access to it.

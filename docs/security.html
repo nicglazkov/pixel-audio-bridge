@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security, Pixel Audio Bridge</title>
+<meta name="description" content="How to report a vulnerability in Pixel Audio Bridge, plus an honest threat model: what it runs, what it changes, and which risks are accepted.">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.doc{max-width:66ch}
+.doc h2{font-size:1.24rem;margin:44px 0 12px}
+.doc h3{font-size:1rem;margin:26px 0 8px}
+.doc p{color:var(--ink-2)}
+.doc strong{color:var(--ink);font-weight:600}
+header.top{padding:56px 0 0}
+.updated{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+
+/* The report path is the single most important thing on this page, so it gets
+   the only piece of emphasis. */
+.report{border:1px solid var(--line);background:var(--tint);border-radius:14px;padding:24px;margin:26px 0 0}
+.report h2{margin:0 0 8px;font-size:1.12rem}
+.report p{margin:0 0 16px;color:var(--ink-2);font-size:.95rem}
+.report .btn{margin-right:8px}
+.report .btn svg{width:15px;height:15px}
+.dontpublic{display:inline-flex;align-items:center;gap:8px;font-size:.84rem;font-weight:600;color:#D0453B;
+  background:color-mix(in srgb,#D0453B 10%,transparent);border-radius:8px;padding:8px 12px;margin-bottom:14px}
+
+table{width:100%;border-collapse:collapse;margin:18px 0 22px;font-size:.9rem}
+th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+   color:var(--ink-3);font-weight:400;padding:9px 12px;border-bottom:1px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+td code{font-family:var(--mono);font-size:.84em;color:var(--ink)}
+td strong{color:var(--ink)}
+td.yes{color:var(--ok);font-weight:600}
+td.no{color:var(--ink-3)}
+
+/* Threat-model items: each states a fact, then why it matters. */
+.facts{list-style:none;margin:18px 0 0;padding:0}
+.facts li{border-top:1px solid var(--line);padding:15px 0 15px 30px;position:relative}
+.facts li:last-child{border-bottom:1px solid var(--line)}
+.facts li::before{content:"";position:absolute;left:6px;top:22px;width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.facts li.warn::before{background:var(--warn)}
+.facts b{color:var(--ink);display:block;font-weight:600;font-size:.96rem}
+.facts span{font-size:.92rem;color:var(--ink-2)}
+
+.callout{border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:0 12px 12px 0;
+  padding:16px 20px;margin:22px 0;background:var(--tint)}
+.callout p{margin:0;font-size:.94rem}
+.callout b{color:var(--ink)}
+footer{margin-top:56px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="brand" href="./"><img src="assets/icon.png" alt="">Pixel Audio Bridge</a>
+    <span class="sp">
+      <a class="navlink" href="privacy.html">Privacy</a>
+      <a class="navlink" href="security.html" aria-current="page">Security</a>
+      <button class="iconbtn" id="theme" type="button" aria-label="Switch between light and dark">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg>
+      </button>
+    </span>
+  </nav>
+
+  <header class="top doc">
+    <div class="updated">Last updated 1 August 2026</div>
+    <h1>Security</h1>
+
+    <div class="report">
+      <span class="dontpublic">
+        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M8 1.5a3 3 0 0 0-3 3V6H4.5A1.5 1.5 0 0 0 3 7.5v5A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11.5 6H11V4.5a3 3 0 0 0-3-3Zm1.5 4.5h-3V4.5a1.5 1.5 0 0 1 3 0V6Z"/></svg>
+        Please do not open a public issue for a security problem
+      </span>
+      <h2>Reporting a vulnerability</h2>
+      <p>Use GitHub's private reporting. It creates a draft advisory that only you and the
+      maintainer can see, so the details stay unpublished while a fix is prepared.</p>
+      <a class="btn primary" href="https://github.com/nicglazkov/pixel-audio-bridge/security/advisories/new">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        Report a vulnerability
+      </a>
+    </div>
+  </header>
+
+  <main class="doc">
+
+    <p style="margin-top:26px">Please include what you were running, what you observed, and
+    how to reproduce it. You will get an acknowledgement within a week. This is a spare-time
+    project, so there is no promised fix deadline, but you will be told honestly what is
+    intended and when.</p>
+
+    <h2>Supported versions</h2>
+    <table>
+      <thead><tr><th>Version</th><th>Supported</th></tr></thead>
+      <tbody>
+        <tr><td><code>1.0.x</code></td><td class="yes">Yes</td></tr>
+        <tr><td>Earlier than 1.0</td><td class="no">No</td></tr>
+      </tbody>
+    </table>
+    <p>Security fixes land on <code>main</code>, and only the most recent release is
+    supported.</p>
+
+    <h2>Threat model</h2>
+    <p>Worth understanding before reporting, and worth knowing before you install it.</p>
+
+    <ul class="facts">
+      <li>
+        <b>It runs entirely locally</b>
+        <span>No server, no accounts, and no network calls to any third party. See the
+        <a href="privacy.html">privacy policy</a>.</span>
+      </li>
+      <li>
+        <b>It executes two external binaries</b>
+        <span><code>scrcpy</code> and <code>adb</code>, resolved from your <code>PATH</code>,
+        falling back to Homebrew and the Android SDK's standard locations. If an attacker can
+        already write to a directory on your <code>PATH</code> they can already run code as
+        you, and this app does not widen that.</span>
+      </li>
+      <li>
+        <b>It changes your default audio output device</b>
+        <span>That is the documented mechanism by which it works, not a side effect. scrcpy
+        plays to the default output and cannot be told to use a specific device.</span>
+      </li>
+      <li class="warn">
+        <b>The config file is sourced as shell</b>
+        <span><code>~/.config/pixel-audio-bridge/config</code> is read with
+        <code>source</code>, so anyone who can write that file can execute code as you. It
+        lives in your home directory under your own permissions. Treat it as you would
+        <code>~/.zshrc</code>.</span>
+      </li>
+      <li>
+        <b>It is unsigned and un-notarized by design</b>
+        <span>You build it from source yourself, so there is no binary to trust and no
+        Gatekeeper prompt to click through.</span>
+      </li>
+    </ul>
+
+    <h2>Known accepted risks</h2>
+    <p>These are documented rather than fixed, because they are inherent to how the thing
+    works. Both appear on the site and in the README as well.</p>
+
+    <div class="callout">
+      <p><b>Wireless ADB widens your phone's exposure.</b>
+      <code>pab enable-wireless</code> turns on Android Debug Bridge over TCP. While that is
+      enabled, any host on the same network that can reach your phone may attempt to connect
+      to it, subject to Android's own authorisation prompt. This is inherent to ADB. It resets
+      when the phone reboots, and USB avoids it entirely while also being faster.</p>
+    </div>
+
+    <div class="callout">
+      <p><b>The output watchdog is not instantaneous.</b> When the output device changes
+      mid-stream, playback is killed within about half a second rather than immediately, so
+      audio may briefly reach another device in that window. This is a consequence of scrcpy
+      having no way to target a specific output device.</p>
+    </div>
+
+    <h2>Out of scope</h2>
+    <p>Vulnerabilities in <a href="https://github.com/Genymobile/scrcpy">scrcpy</a> or
+    <code>adb</code> belong upstream, since both are installed separately and are not
+    redistributed here. Please report those to their own projects.</p>
+  </main>
+
+  <footer>
+    <span class="l">
+      <a href="./">Home</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/nicglazkov/pixel-audio-bridge/blob/main/SECURITY.md">SECURITY.md</a>
+      <a href="https://github.com/nicglazkov/pixel-audio-bridge/blob/main/LICENSE">MIT licence</a>
+    </span>
+    <span>No accounts, no telemetry, no third-party requests.</span>
+  </footer>
+
+</div>
+<script src="theme.js"></script>
+</body>
+</html>

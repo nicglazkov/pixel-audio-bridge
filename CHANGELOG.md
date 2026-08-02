@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] — 2026-08-01
+## [1.0.0] 2026-08-01
 
 First release.
 
@@ -17,7 +17,7 @@ First release.
   playback within ~0.5 s if that ever changes.
 - `pab` command-line tool, usable standalone: `run`, `stop`, `status`, `info`,
   `doctor`, `enable-wireless`.
-- Automatic transport selection — USB when plugged in, Wi-Fi otherwise — with a
+- Automatic transport selection (USB when plugged in, Wi-Fi otherwise) with a
   15 ms buffer wired and 200 ms wireless.
 - 78 tests that run without a phone, headphones or audio hardware.
 

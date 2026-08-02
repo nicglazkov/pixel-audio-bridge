@@ -1,7 +1,7 @@
 import Foundation
 import CoreAudio
 
-// paboutput — read and set the macOS default output device.
+// paboutput: read and set the macOS default output device.
 //
 // scrcpy plays through SDL to whatever macOS calls the default output, and has
 // no way to target a device. So the bridge's safety check becomes "is the
@@ -51,7 +51,7 @@ func deviceName(_ device: AudioDeviceID) -> String? {
     stringProperty(device, kAudioObjectPropertyName)
 }
 
-/// A device counts as an output only if it actually has output channels —
+/// A device counts as an output only if it actually has output channels;
 /// microphones and input-only aggregates otherwise show up in the list.
 func hasOutputChannels(_ device: AudioDeviceID) -> Bool {
     var addr = address(kAudioDevicePropertyStreamConfiguration, kAudioDevicePropertyScopeOutput)

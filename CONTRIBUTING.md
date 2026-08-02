@@ -17,7 +17,7 @@ the UI logic lives in `BridgeLogic`, which is free of `UserDefaults`, timers and
 processes so it can be called directly.
 
 If you change behaviour, add a case. If you change the JSON that `pab info`
-emits, add a case to `tests/main.swift` — that contract is the boundary between
+emits, add a case to `tests/main.swift`. That contract is the boundary between
 the shell and the app, and it has broken silently before.
 
 ## Layout
@@ -25,13 +25,13 @@ the shell and the app, and it has broken silently before.
 | Path | What it is |
 |---|---|
 | `bin/pab` | All bridge logic: device selection, transport, watchdog, process lifecycle |
-| `app/OutputDevice.swift` | `paboutput` — reads and sets the macOS default output device |
+| `app/OutputDevice.swift` | `paboutput`, which reads and sets the macOS default output device |
 | `app/BridgeController.swift` | App state, and the pure `BridgeLogic` the tests exercise |
 | `app/ContentView.swift` | SwiftUI window and menu bar |
 | `app/IconGen.swift` | Draws the app icon at build time |
 | `docs/` | The website, served by GitHub Pages |
 
-`pab` works standalone. The app is a supervisor and a status display over it —
+`pab` works standalone. The app is a supervisor and a status display over it, and
 that split is deliberate, so please keep bridge logic in the shell script rather
 than moving it into Swift.
 
@@ -51,5 +51,5 @@ than moving it into Swift.
 ## Style
 
 Match what's there. Comments explain *why*, especially where something looks
-odd — most of the strange-looking code in this repository is load-bearing, and
+odd. Most of the strange-looking code in this repository is load-bearing, and
 the comment says which failure it exists to prevent.

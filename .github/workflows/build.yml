@@ -24,15 +24,30 @@ jobs:
       - name: Verify bundle contents
         run: |
           APP=build/PixelAudioBridge.app
-          for f in Contents/MacOS/PixelAudioBridge Contents/Resources/pab \
-                   Contents/Resources/paboutput Contents/Resources/AppIcon.icns \
+          for f in Contents/MacOS/PixelAudioBridge Contents/MacOS/paboutput \
+                   Contents/Resources/pab Contents/Resources/AppIcon.icns \
                    Contents/Info.plist; do
             test -e "$APP/$f" || { echo "missing $f"; exit 1; }
           done
           echo "bundle complete"
 
+      # The docs promise Apple silicon and Intel, so CI has to hold the build to it.
+      - name: Verify universal binaries
+        run: |
+          APP=build/PixelAudioBridge.app
+          for bin in PixelAudioBridge paboutput; do
+            archs="$(lipo -archs "$APP/Contents/MacOS/$bin")"
+            echo "$bin: $archs"
+            case "$archs" in
+              *arm64*) ;; *) echo "missing arm64 in $bin"; exit 1 ;;
+            esac
+            case "$archs" in
+              *x86_64*) ;; *) echo "missing x86_64 in $bin"; exit 1 ;;
+            esac
+          done
+
       - name: Shell syntax check
-        run: bash -n bin/pab && bash -n build.sh
+        run: bash -n bin/pab && bash -n build.sh && bash -n release.sh
 
       - name: Tests
         run: ./tests/run.sh

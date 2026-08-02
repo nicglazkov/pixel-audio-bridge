@@ -118,8 +118,7 @@
 .qa h3{margin:0 0 9px}
 .qa p{font-size:.89rem;color:var(--ink-2);margin:0 0 11px}
 .qa p:last-child{margin-bottom:0}
-.closer{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);
-  font-size:.89rem;color:var(--ink-2);max-width:74ch}
+.qa .codebox{margin:14px 0;font-size:.79rem;line-height:1.7}
 @media (max-width:760px){
   .steps{grid-template-columns:1fr}
   .steps li:first-child{border-radius:12px 12px 0 0}
@@ -281,9 +280,26 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
       </li>
     </ol>
 
-    <p class="note">That is the whole setup. For wireless, run <code>pab enable-wireless</code>
-    once while the phone is still plugged in, and it will keep working over your network
-    afterwards.</p>
+    <p class="note">That is the whole setup. To go wireless afterwards, run
+    <code>pab enable-wireless</code> once while the phone is still plugged in.</p>
+
+    <div class="qa">
+      <h3>Never plugging in at all?</h3>
+      <p>Android 11 and later can pair over Wi-Fi with no cable, ever. In Developer options,
+      switch on <b>Wireless debugging</b>, then tap <b>Pair device with pairing code</b>. Your
+      phone displays an address and a six digit code. Give both to your Mac, then connect using
+      the address shown on the Wireless debugging screen itself, which uses a different port
+      from the pairing one.</p>
+      <div class="codebox"><span class="c"># both values are on your phone's pairing dialog</span>
+adb pair 192.168.1.42:37105 481920
+<span class="c"># this address is on the Wireless debugging screen, not the dialog</span>
+adb connect 192.168.1.42:41003</div>
+      <p>On a shared network you never have to work out which device is yours. The address and
+      the code are both shown on your own phone, the code works once, and pairing fails without
+      it, so there is nothing to guess at and nothing to scan for. Some networks do isolate
+      clients from each other, which blocks this entirely; a home network or the phone's own
+      hotspot works.</p>
+    </div>
 
     <div class="qa">
       <h3>Is developer mode really necessary?</h3>
@@ -298,9 +314,6 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
       Developer options menu.</p>
     </div>
 
-    <p class="closer">191 ms wired, and 170.7 of that happens inside the headphones themselves,
-    where no software on either machine can reach it.
-    <a href="how-it-works.html#measurements">How every number was measured</a></p>
   </section>
 
   <footer>

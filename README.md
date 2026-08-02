@@ -10,7 +10,7 @@
 [![build](https://github.com/nicglazkov/pixel-audio-bridge/actions/workflows/build.yml/badge.svg)](https://github.com/nicglazkov/pixel-audio-bridge/actions/workflows/build.yml)
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-5B3FE0)](LICENSE)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-6E7689)](#what-you-need)
-[![191 ms wired](https://img.shields.io/badge/latency-191%20ms%20wired-0F8A57)](https://nicglazkov.github.io/pixel-audio-bridge/#latency)
+[![191 ms wired](https://img.shields.io/badge/latency-191%20ms%20wired-0F8A57)](https://nicglazkov.github.io/pixel-audio-bridge/how-it-works.html#measurements)
 [![tests: 78](https://img.shields.io/badge/tests-78-6E7689)](#tests)
 [![notarized](https://img.shields.io/badge/signed-notarized%20by%20Apple-0F8A57)](#install)
 
@@ -56,8 +56,12 @@ already at `~/Library/Android/sdk/platform-tools`; otherwise
 `brew install --cask android-platform-tools`. The Homebrew route installs
 `scrcpy` for you.
 
-Then enable USB debugging on the phone, plug it in, and accept the prompt. For
-wireless, run `pab enable-wireless` once while it is plugged in.
+Your phone needs three settings changed before any of this works: unlock
+Developer options, turn on USB debugging, then approve this Mac when it asks.
+There is no route that skips it, because the bridge reaches your phone through
+`adb`. [The three steps, with the reasoning](https://nicglazkov.github.io/pixel-audio-bridge/#setup)
+
+For wireless, run `pab enable-wireless` once while it is plugged in.
 
 <details>
 <summary><strong>Build from source instead</strong></summary>

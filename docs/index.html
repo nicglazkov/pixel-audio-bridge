@@ -99,33 +99,32 @@
   padding:5px 12px;background:color-mix(in srgb,var(--ok) 8%,transparent)}
 .notarized svg{width:13px;height:13px}
 
-/* ---- latency ------------------------------------------------------------
-   Both links on one shared scale, against a millisecond ruler. The Bluetooth
-   block is the same width in both rows because it is the same 170.7 ms; only
-   the capture buffer grows. Segment widths are percentages of 376 ms. */
-.budget{margin-top:30px;border:1px solid var(--line);border-radius:14px;padding:26px 28px 20px}
-.budget .plot{position:relative}
-.budget .grid{position:absolute;inset:0;pointer-events:none}
-.budget .grid i{position:absolute;top:0;bottom:26px;width:1px;background:var(--line)}
-.budget .row{position:relative;margin-bottom:20px}
-.budget .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:12px}
-.budget .name{font-weight:600;font-size:.95rem}
-.budget .total{font-family:var(--mono);font-size:.95rem}
-.budget .row.best .total{color:var(--ok)}
-.budget .bar{display:flex;height:30px;border-radius:6px;overflow:hidden;background:transparent;
-  box-shadow:inset 0 0 0 1px var(--line)}
-.budget .seg{height:100%}
-.budget .axis{position:relative;height:26px;margin-top:2px}
-.budget .axis span{position:absolute;top:6px;transform:translateX(-50%);font-family:var(--mono);
-  font-size:.7rem;color:var(--ink-3);white-space:nowrap}
-.budget .axis span.start{transform:none}
-.budget .axis span.end{transform:translateX(-100%)}
-.budget .key{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font-size:.84rem;color:var(--ink-2)}
-.budget .key div{display:flex;align-items:center;gap:8px}
-.budget .dot{width:10px;height:10px;border-radius:3px;flex:none}
-.tune{background:var(--ink-3)}
-.out{background:color-mix(in srgb,var(--ink-3) 55%,var(--bg))}
-.fix{background:var(--indigo)}
+/* ---- phone setup ---------------------------------------------------------
+   Three joined cards rather than three separate ones, because the steps are
+   strictly ordered: Developer options has to be unlocked before USB debugging
+   exists to switch on. They stack on narrow screens. */
+.steps{list-style:none;counter-reset:s;margin:30px 0 0;padding:0;
+  display:grid;gap:2px;grid-template-columns:repeat(3,1fr)}
+.steps li{counter-increment:s;position:relative;background:var(--tint);border:1px solid var(--line);
+  padding:24px 24px 26px}
+.steps li:first-child{border-radius:12px 0 0 12px}
+.steps li:last-child{border-radius:0 12px 12px 0}
+.steps li::before{content:counter(s);display:flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;background:var(--indigo);color:#fff;
+  font:600 .8rem/1 var(--disp);margin-bottom:14px}
+.steps h3{margin:0 0 7px}
+.steps p{font-size:.89rem;color:var(--ink-2);margin:0}
+.qa{margin-top:34px;border-left:2px solid var(--line);padding-left:20px;max-width:70ch}
+.qa h3{margin:0 0 9px}
+.qa p{font-size:.89rem;color:var(--ink-2);margin:0 0 11px}
+.qa p:last-child{margin-bottom:0}
+.closer{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);
+  font-size:.89rem;color:var(--ink-2);max-width:74ch}
+@media (max-width:760px){
+  .steps{grid-template-columns:1fr}
+  .steps li:first-child{border-radius:12px 12px 0 0}
+  .steps li:last-child{border-radius:0 0 12px 12px}
+}
 .note{font-size:.89rem;color:var(--ink-2);margin-top:16px;max-width:66ch}
 
 @media (max-width:880px){
@@ -133,8 +132,6 @@
   .heroshot img{margin:0 auto}
   .explorer{grid-template-columns:1fr}
   .response{position:static}
-  .budget{padding:20px 18px 16px}
-  .budget .key{gap:14px;font-size:.8rem}
 }
 </style>
 </head>
@@ -228,11 +225,10 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
       </div>
     </div>
 
-    <p class="note" style="margin-top:22px">Then enable USB debugging on the phone, plug it in,
-    and accept the prompt. For wireless, run <code>pab enable-wireless</code> once while it is
-    plugged in. <code>adb</code> comes from the Android SDK, already at
-    <code>~/Library/Android/sdk/platform-tools</code> if you have Android Studio and otherwise
-    <code>brew install --cask android-platform-tools</code>.</p>
+    <p class="note" style="margin-top:22px"><code>adb</code> comes from the Android SDK, already
+    at <code>~/Library/Android/sdk/platform-tools</code> if you have Android Studio and otherwise
+    <code>brew install --cask android-platform-tools</code>. Your phone needs
+    <a href="#setup">three settings changed</a> before any of this works.</p>
   </section>
 
   <section id="behaviour">
@@ -260,55 +256,51 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
     </div>
   </section>
 
-  <section id="latency">
+  <section id="setup">
     <div class="shead">
-      <h2>Where the 191 milliseconds go</h2>
-      <p>Every figure here was measured on real hardware. Most of the delay is not ours to
-      fix, and it depends on what you listen through.</p>
+      <h2>Set up your phone</h2>
+      <p>Three steps on the phone itself, done once. The wording varies a little between
+      manufacturers, but the path is the same.</p>
     </div>
 
-    <div class="budget">
-      <div class="plot">
-        <div class="grid" aria-hidden="true">
-          <i style="left:26.6%"></i><i style="left:53.2%"></i><i style="left:79.8%"></i>
-        </div>
-        <div class="row best">
-          <div class="head"><span class="name">Wired, over USB</span><span class="total">191 ms</span></div>
-          <div class="bar" role="img" aria-label="Wired: 15 ms capture buffer, 5 ms output buffer, 170.7 ms Bluetooth, 191 ms total">
-            <div class="seg tune" style="width:4.0%"></div>
-            <div class="seg out"  style="width:1.3%"></div>
-            <div class="seg fix"  style="width:45.4%"></div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="head"><span class="name">Wireless, over Wi-Fi</span><span class="total">376 ms</span></div>
-          <div class="bar" role="img" aria-label="Wireless: 200 ms capture buffer, 5 ms output buffer, 170.7 ms Bluetooth, 376 ms total">
-            <div class="seg tune" style="width:53.2%"></div>
-            <div class="seg out"  style="width:1.3%"></div>
-            <div class="seg fix"  style="width:45.4%"></div>
-          </div>
-        </div>
-        <div class="axis" aria-hidden="true">
-          <span class="start" style="left:0">0</span>
-          <span style="left:26.6%">100</span>
-          <span style="left:53.2%">200</span>
-          <span style="left:79.8%">300</span>
-          <span class="end" style="left:100%">400 ms</span>
-        </div>
-      </div>
-      <div class="key">
-        <div><span class="dot tune"></span>Capture buffer</div>
-        <div><span class="dot out"></span>Output buffer</div>
-        <div><span class="dot fix"></span>Bluetooth, identical in both</div>
-      </div>
+    <ol class="steps">
+      <li>
+        <h3>Unlock Developer options</h3>
+        <p>Settings, About phone, then tap <b>Build number</b> seven times. It counts down the
+        last few taps so you know it is working.</p>
+      </li>
+      <li>
+        <h3>Turn on USB debugging</h3>
+        <p>Developer options now appears in Settings, usually under System. Open it and switch
+        on <b>USB debugging</b>.</p>
+      </li>
+      <li>
+        <h3>Plug in and allow</h3>
+        <p>Your phone asks whether to trust this computer and shows a key fingerprint. Tick
+        <b>Always allow from this computer</b>, then Allow.</p>
+      </li>
+    </ol>
+
+    <p class="note">That is the whole setup. For wireless, run <code>pab enable-wireless</code>
+    once while the phone is still plugged in, and it will keep working over your network
+    afterwards.</p>
+
+    <div class="qa">
+      <h3>Is developer mode really necessary?</h3>
+      <p>Yes, and it has to stay on. The bridge reaches your phone through <code>adb</code>,
+      the same debugging channel Android exposes to developers, and that is the only interface
+      that lets software on your Mac capture what the phone is playing. Every alternative
+      route is closed: macOS cannot act as a Bluetooth speaker, and Android does not let an
+      ordinary app hand its audio to a computer.</p>
+      <p>It is narrower than it sounds. USB debugging grants nothing on its own. A computer
+      gets access only after you approve its fingerprint on the phone, and you can withdraw
+      every approval at any time with <b>Revoke USB debugging authorizations</b>, in the same
+      Developer options menu.</p>
     </div>
-    <p class="note">The indigo block is the same width in both rows because it is the same
-    170.7 ms, happening inside the headphones rather than on your Mac. No setting on either
-    machine changes it, so everything this software controls is the twenty milliseconds
-    beside it. Wi-Fi jitter of 6 to 21 ms is why the wireless capture buffer needs 200 ms of
-    headroom where a cable needs 15. The Bluetooth figure was measured with AirPods Max;
-    other headphones differ, and a wired output device or a USB DAC skips that stage almost
-    entirely.</p>
+
+    <p class="closer">191 ms wired, and 170.7 of that happens inside the headphones themselves,
+    where no software on either machine can reach it.
+    <a href="how-it-works.html#measurements">How every number was measured</a></p>
   </section>
 
   <footer>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Troubleshooting, Pixel Audio Bridge</title>
+<meta name="description" content="Fixes for the problems that actually happen: no sound, clicks and dropouts, wireless resetting, and audio briefly reaching the speakers.">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="shared.css">
+<style>
+.lead{font-size:1.05rem;color:var(--ink-2);max-width:60ch;margin-top:14px}
+.first{border:1px solid var(--line);background:var(--tint);border-radius:14px;padding:22px 24px;margin:26px 0 34px}
+.first h2{margin:0 0 8px;font-size:1.1rem}
+.first p{margin:0 0 12px;font-size:.94rem}
+.first pre{margin:0}
+footer{margin-top:56px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="brand" href="./"><img src="assets/icon.png" alt="">Pixel Audio Bridge</a>
+    <span class="sp">
+      <a class="navlink" href="./#quickstart">Quick start</a>
+      <a class="navlink" href="how-it-works.html">How it works</a>
+      <a class="navlink" href="troubleshooting.html" aria-current="page">Troubleshooting</a>
+      <a class="navlink" href="privacy.html">Privacy</a>
+      <a class="navlink" href="security.html">Security</a>
+      <button class="iconbtn" id="theme" type="button" aria-label="Switch between light and dark">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg>
+      </button>
+    </span>
+  </nav>
+
+  <header class="top doc">
+    <h1>Troubleshooting</h1>
+    <p class="lead">The problems below are the ones that actually happen, in
+    rough order of how often.</p>
+
+    <div class="first">
+      <h2>Start here</h2>
+      <p>One command reports dependencies, output devices, adb transports and config in a
+      single pass, and answers most questions before you have to ask them.</p>
+      <pre><code>./bin/pab doctor</code></pre>
+    </div>
+  </header>
+
+  <main class="doc">
+
+    <details class="tsh">
+      <summary>Nothing happens when I put my headphones on</summary>
+      <div class="body">
+        <p>The app judges presence by CoreAudio, not Bluetooth. Headphones can show as
+        connected in Bluetooth while being absent from CoreAudio in standby, and the bridge
+        correctly waits rather than failing.</p>
+        <p>Check what the app can actually see:</p>
+        <pre><code>./bin/pab doctor</code></pre>
+        <p>If your device is not in the output list, play any sound on your Mac to wake it,
+        then look again. The app starts on its own within about a second of it appearing.</p>
+        <p>If the device is listed but the app still sits in Waiting, confirm the name filter
+        matches it. <code>AIRPODS_MATCH</code> in
+        <code>~/.config/pixel-audio-bridge/config</code> is a plain substring, so set it to
+        any part of your device's name.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>It says Streaming but there is no sound</summary>
+      <div class="body">
+        <p>Almost always the app on the phone opting out of capture. Android lets an app set
+        <code>allowAudioPlaybackCapture="false"</code> or flag its audio as DRM protected, and
+        capture then returns silence with no error at all. Spotify does this. Instagram does
+        not.</p>
+        <p>Try a different app on the phone. If everything is silent, check that the phone's
+        media stream is not muted, then open the log and look for a warning about a
+        persistently low capture level.</p>
+        <p>Worth knowing: the phone's volume slider is <em>not</em> the cause. Capture happens
+        before stream volume is applied, so the phone can be at zero and the Mac will still
+        get full-level audio.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>I hear clicks, pops or brief dropouts</summary>
+      <div class="body">
+        <p>That is sample skipping, which means the buffer is too small for the link. Raise
+        it:</p>
+        <pre><code>./bin/pab run --wired --buffer 30</code></pre>
+        <p>The wired default of 15 ms is deliberately below scrcpy's own default of 50 ms, and
+        it is the one figure in this project validated by listening rather than
+        instrumentation. If 30 fixes it, keep 30.</p>
+        <p>Glitches and lag are different symptoms with opposite fixes. Clicks mean the buffer
+        is too tight. Lag means it is doing its job.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>Wireless stopped working</summary>
+      <div class="body">
+        <p>Wireless ADB resets whenever the phone reboots. Plug in over USB and run:</p>
+        <pre><code>./bin/pab enable-wireless</code></pre>
+        <p>If the phone is awake and on the same network but still unreachable, its Wi-Fi
+        address may have changed. The address is relearned automatically the next time you
+        connect over USB, so plugging in once fixes it.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>Audio briefly came out of my speakers</summary>
+      <div class="body">
+        <p>Expected, and documented rather than fixed. The watchdog polls the default output
+        twice a second, so a mid-stream disconnect leaves a window of up to about half a
+        second before playback is killed.</p>
+        <p>scrcpy plays to the system output and cannot be told to target a specific device,
+        which is why this is a watchdog rather than a pin. The
+        <a href="how-it-works.html#watchdog">how it works page</a> explains the trade in
+        full.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>The video on my phone is ahead of the audio</summary>
+      <div class="body">
+        <p>The phone does not know its audio was captured, so it never delays video to
+        compensate. Over USB the offset is about 191 ms. Over Wi-Fi it is about 376 ms and
+        clearly visible.</p>
+        <p>Use the cable for anything you are watching. Mirroring the video through scrcpy
+        would keep both in sync, but that routes audio through scrcpy's own window and gives
+        up the output watchdog.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>The app says the bridge helper is missing</summary>
+      <div class="body">
+        <p><code>pab</code> and <code>paboutput</code> ship inside the app bundle. If either
+        is missing, the build did not complete. Rebuild:</p>
+        <pre><code>./build.sh</code></pre>
+        <p>The app deliberately does not guess at a path on disk when the helper is absent,
+        because that turns a clear build failure into a confusing runtime one.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>scrcpy or adb is not found</summary>
+      <div class="body">
+        <p><code>pab</code> looks on your <code>PATH</code> first, then falls back to Homebrew
+        and the Android SDK's standard locations. Install what is missing:</p>
+        <pre><code>brew install scrcpy</code></pre>
+        <p><code>adb</code> comes from the Android SDK. If you have Android Studio it is
+        already at <code>~/Library/Android/sdk/platform-tools</code>. Otherwise install
+        <a href="https://developer.android.com/tools/releases/platform-tools">platform-tools</a>
+        and make sure it is on your <code>PATH</code>.</p>
+      </div>
+    </details>
+
+    <details class="tsh">
+      <summary>Phone calls do not capture</summary>
+      <div class="body">
+        <p>They cannot. Android blocks <code>USAGE_VOICE_COMMUNICATION</code> from playback
+        capture, and there is no return path for your microphone either. This is a platform
+        restriction, not something the app can work around.</p>
+      </div>
+    </details>
+
+    <h2>Still stuck</h2>
+    <p>Open an issue with the output of <code>./bin/pab doctor</code> attached. The issue
+    template asks for it first, because it usually contains the answer.</p>
+    <p>Please redact anything you would rather not share. The log can contain device names and
+    local IP addresses.</p>
+  </main>
+
+  <footer>
+    <span class="l">
+      <a href="./">Home</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/nicglazkov/pixel-audio-bridge/issues">Open an issue</a>
+    </span>
+    <span>No accounts, no telemetry, no third-party requests.</span>
+  </footer>
+
+</div>
+<script src="theme.js"></script>
+</body>
+</html>

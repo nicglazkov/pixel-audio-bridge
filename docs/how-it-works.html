@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How it works, Pixel Audio Bridge</title>
+<meta name="description" content="The internals: one scrcpy process, why the capture source matters, how the output watchdog works, and how every latency figure was measured.">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="shared.css">
+<style>
+.lead{font-size:1.05rem;color:var(--ink-2);max-width:60ch;margin-top:14px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:26px 0 0;font-family:var(--mono);font-size:.8rem}
+.chain .node{background:var(--tint);border:1px solid var(--line);border-radius:8px;padding:10px 14px;color:var(--ink)}
+.chain .node.end{border-color:color-mix(in srgb,var(--indigo) 45%,var(--line));color:var(--indigo)}
+.chain .arr{color:var(--ink-3)}
+ol.steps{counter-reset:s;list-style:none;padding:0;margin:18px 0 0}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 16px 38px;color:var(--ink-2);font-size:.94rem}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:24px;height:24px;
+  border-radius:50%;background:var(--tint);border:1px solid var(--line);color:var(--ink);
+  font-family:var(--mono);font-size:.75rem;display:grid;place-items:center}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0 0}
+.split .card{border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.split .card h3{margin:0 0 6px}
+.split .card p{margin:0;font-size:.9rem}
+.split .card.no{opacity:.85}
+footer{margin-top:56px}
+@media (max-width:760px){.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="brand" href="./"><img src="assets/icon.png" alt="">Pixel Audio Bridge</a>
+    <span class="sp">
+      <a class="navlink" href="./#quickstart">Quick start</a>
+      <a class="navlink" href="how-it-works.html" aria-current="page">How it works</a>
+      <a class="navlink" href="troubleshooting.html">Troubleshooting</a>
+      <a class="navlink" href="privacy.html">Privacy</a>
+      <a class="navlink" href="security.html">Security</a>
+      <button class="iconbtn" id="theme" type="button" aria-label="Switch between light and dark">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg>
+      </button>
+    </span>
+  </nav>
+
+  <header class="top doc">
+    <h1>How it works</h1>
+    <p class="lead">One process, one buffer, and a watchdog. The interesting parts are the
+    constraints, not the code.</p>
+    <div class="chain" aria-label="Signal path">
+      <span class="node">Phone</span><span class="arr">&rarr;</span>
+      <span class="node">USB or Wi-Fi</span><span class="arr">&rarr;</span>
+      <span class="node">scrcpy</span><span class="arr">&rarr;</span>
+      <span class="node">CoreAudio</span><span class="arr">&rarr;</span>
+      <span class="node end">Your headphones</span>
+    </div>
+  </header>
+
+  <main class="doc">
+
+    <h2>Why not Bluetooth</h2>
+    <p>macOS implements the Bluetooth A2DP <strong>source</strong> role and has no
+    <strong>sink</strong>. Your Mac can send audio to headphones but cannot receive it from
+    anything, so it can never appear in a phone's Bluetooth output list as a speaker. No
+    setting changes this, on any macOS version.</p>
+    <p>The audio therefore travels over ADB instead, by cable or over your own network, and
+    arrives at the Mac as an ordinary stream that CoreAudio can play.</p>
+
+    <h2>The whole thing is one command</h2>
+    <pre><code>scrcpy --no-video --no-window --no-control \
+       --audio-source=playback --audio-buffer=N --audio-output-buffer=5</code></pre>
+    <p>Three details carry most of the weight.</p>
+
+    <h3>Why <code>--audio-source=playback</code></h3>
+    <p>It uses Android's <code>AudioPlaybackCapture</code>, which taps each app's PCM
+    <em>before</em> stream volume is applied. That is why the phone's volume slider is
+    irrelevant and can sit at zero.</p>
+    <div class="split">
+      <div class="card">
+        <h3><code>playback</code></h3>
+        <p>Pre-volume. Apps can opt out: Instagram does not, Spotify does.</p>
+      </div>
+      <div class="card no">
+        <h3><code>output</code></h3>
+        <p>Uses <code>REMOTE_SUBMIX</code>. Post-volume, so it records silence whenever the
+        phone's media stream is muted. Measured at 87 dB below the playback source under
+        exactly that condition.</p>
+      </div>
+    </div>
+
+    <h3>Why <code>--no-window</code></h3>
+    <p>Without it, SDL initialises and registers scrcpy as a GUI application, so it appears in
+    the Dock and the app switcher despite having nothing to display. Audio playback still
+    works with the flag set, which was verified by observing CoreAudio frames in scrcpy's
+    stacks rather than assumed.</p>
+
+    <h3>Why there is no intermediate player</h3>
+    <p>An earlier design piped Opus into <code>mpv --audio-device=&lt;UID&gt;</code>. mpv can
+    pin an output device by identifier and <em>refuses to fall back</em> when it disappears,
+    which made a hard guarantee possible: audio could never reach the speakers.</p>
+    <p>It was dropped for latency. mpv's <code>--audio-buffer</code> defaults to 0.2 s, which
+    went unnoticed and cost 200 ms. Even correctly tuned, the extra encode, mux, pipe, demux
+    and decode stages cost about 10 ms. The guarantee was traded for that, deliberately.</p>
+
+    <h2 id="watchdog">The output watchdog</h2>
+    <p>scrcpy plays to the default output and <strong>cannot be told to use a specific
+    device</strong>. So the guard is a watchdog, not a pin:</p>
+    <ol class="steps">
+      <li>On start, the chosen device is made the macOS default output. If that fails, the
+      bridge refuses to start rather than playing somewhere unintended.</li>
+      <li>While running, the default output is polled twice a second.</li>
+      <li>If it stops being the chosen device, scrcpy's process group is killed.</li>
+    </ol>
+    <div class="callout warn">
+      <p><b>Exposure is up to about half a second, not zero.</b> If your headphones disconnect
+      mid-stream, macOS reassigns default output to the built-in speakers, and audio can reach
+      them before the watchdog fires. Turning the toggle off removes even that check.</p>
+    </div>
+    <p>Setting the default device is verified by reading the property back rather than
+    trusting the return code, because CoreAudio returns <code>noErr</code> for devices that
+    then silently refuse to become default. At least one widely used tool reports success in
+    exactly that case.</p>
+
+    <h3>Presence is judged by CoreAudio, never Bluetooth</h3>
+    <p>AirPods Max can be Bluetooth-connected yet completely absent from CoreAudio when idle
+    in standby. A Bluetooth-based check would report them as present, start the bridge, and
+    fail. CoreAudio enumeration is the only signal that matches reality.</p>
+
+    <h2>Architecture</h2>
+    <p>All bridge logic lives in <code>bin/pab</code>, a shell script that works standalone.
+    The app is a supervisor and a status display over it, and a small CoreAudio helper reads
+    and sets the default output device fast enough to poll twice a second.</p>
+    <table>
+      <thead><tr><th>Piece</th><th>Responsibility</th></tr></thead>
+      <tbody>
+        <tr><td><code>bin/pab</code></td><td>Device selection, transport, watchdog, process lifecycle</td></tr>
+        <tr><td><code>paboutput</code></td><td>Reads and sets the macOS default output device, in under 50 ms</td></tr>
+        <tr><td>The app</td><td>State, window, menu bar, and tearing everything down on quit</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="measurements">How every number was measured</h2>
+    <table>
+      <thead><tr><th>Quantity</th><th>Value</th><th>Method</th></tr></thead>
+      <tbody>
+        <tr><td>Mac to AirPods Max, Bluetooth</td><td>170.7 ms</td><td>CoreAudio reported device latency</td></tr>
+        <tr><td>Wi-Fi jitter to the phone</td><td>6 to 21 ms, sigma 3.6</td><td>20 ping packets</td></tr>
+        <tr><td>Wi-Fi buffer floor</td><td>200 ms</td><td>50 ms gave 4 sample skips in 15 s. 150 ms ran clean twice, then lost 514 ms of audio on the third run. 200 ms was clean three times</td></tr>
+        <tr><td>Wired buffer</td><td>15 ms</td><td>Chosen for a jitter-free link and validated by listening</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <p><b>The 15 ms wired buffer is the one figure that is not instrumented.</b> scrcpy's own
+      default is 50 ms. If you hear clicks or brief dropouts that is sample skipping, so raise
+      it with <code>--buffer</code>. It sounds like glitches, not lag. See
+      <a href="troubleshooting.html">troubleshooting</a>.</p>
+    </div>
+    <p>The 150 ms result is the reason the Wi-Fi floor is 200 rather than 150. Two clean runs
+    followed by one that lost half a second of audio is exactly the shape of a setting that
+    looks fine until it is not, which is why every buffer figure here comes from repeated
+    runs rather than one.</p>
+  </main>
+
+  <footer>
+    <span class="l">
+      <a href="./">Home</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="security.html">Security</a>
+      <a href="https://github.com/Genymobile/scrcpy">Built on scrcpy</a>
+    </span>
+    <span>No accounts, no telemetry, no third-party requests.</span>
+  </footer>
+
+</div>
+<script src="theme.js"></script>
+</body>
+</html>

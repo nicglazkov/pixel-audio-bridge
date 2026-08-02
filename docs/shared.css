@@ -111,3 +111,44 @@ footer .l{display:flex;gap:18px;flex-wrap:wrap}
   section{padding:52px 0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- documentation pages ------------------------------------------------
+   Shared by privacy, security, how-it-works and troubleshooting so the four
+   cannot drift apart. Page-specific rules stay in the page. */
+.doc{max-width:66ch}
+.doc h2{font-size:1.24rem;margin:44px 0 12px}
+.doc h3{font-size:1rem;margin:26px 0 8px}
+.doc p{color:var(--ink-2)}
+.doc strong{color:var(--ink);font-weight:600}
+.doc code{font-family:var(--mono);font-size:.86em;color:var(--ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.doc pre{font-family:var(--mono);font-size:.83rem;background:var(--tint);border:1px solid var(--line);
+  border-radius:10px;padding:16px 18px;overflow-x:auto;line-height:1.7;color:var(--ink);margin:14px 0}
+.doc pre code{background:none;border:0;padding:0;font-size:1em}
+header.top{padding:56px 0 0}
+.updated{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:14px}
+.doc table{width:100%;border-collapse:collapse;margin:18px 0 22px;font-size:.9rem}
+.doc th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+   color:var(--ink-3);font-weight:400;padding:9px 12px;border-bottom:1px solid var(--line)}
+.doc td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+.doc td strong{color:var(--ink)}
+.callout{border:1px solid var(--line);border-left:3px solid var(--indigo);border-radius:0 12px 12px 0;
+  padding:16px 20px;margin:22px 0;background:var(--tint)}
+.callout p{margin:0;font-size:.94rem}
+.callout b{color:var(--ink)}
+.callout.warn{border-left-color:var(--warn)}
+
+/* Collapsible entries, used for troubleshooting. */
+details.tsh{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--bg)}
+details.tsh[open]{background:var(--tint)}
+details.tsh summary{cursor:pointer;padding:15px 18px;font-weight:600;font-size:.95rem;
+  list-style:none;display:flex;align-items:center;gap:11px}
+details.tsh summary::-webkit-details-marker{display:none}
+details.tsh summary::before{content:"";width:7px;height:7px;border-right:1.6px solid var(--ink-3);
+  border-bottom:1.6px solid var(--ink-3);transform:rotate(-45deg);flex:none;margin-left:3px;transition:transform .16s}
+details.tsh[open] summary::before{transform:rotate(45deg)}
+details.tsh .body{padding:0 18px 18px 40px}
+details.tsh .body p{margin:0 0 .9em;font-size:.93rem}
+details.tsh .body p:last-child{margin-bottom:0}
+details.tsh .body pre{margin:12px 0}

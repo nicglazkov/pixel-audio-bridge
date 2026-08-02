@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Getting started with Pixel Audio Bridge</title>
+<meta name="description" content="A step by step guide to hearing your Android phone through your Mac, with or without a cable.">
+<link rel="icon" href="assets/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nicglazkov.github.io/pixel-audio-bridge/getting-started.html">
+<meta property="og:title" content="Getting started with Pixel Audio Bridge">
+<meta property="og:description" content="From nothing to sound, step by step, with or without a cable.">
+<meta property="og:image" content="https://nicglazkov.github.io/pixel-audio-bridge/assets/social-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="shared.css">
+<style>
+/* ---- intro --------------------------------------------------------------- */
+.lede{max-width:56ch;font-size:1.06rem;color:var(--ink-2);margin-top:14px}
+.timing{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+.timing span{display:inline-flex;align-items:center;gap:8px;font-size:.83rem;color:var(--ink-2);
+  border:1px solid var(--line);border-radius:99px;padding:6px 14px}
+.timing b{color:var(--ink);font-weight:600}
+
+/* ---- route chooser -------------------------------------------------------
+   The only fork in the guide. Everything downstream reads from the selected
+   card, so the reader answers one question and then stops making decisions. */
+.routes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:26px}
+.route{appearance:none;text-align:left;font:inherit;cursor:pointer;background:var(--bg);
+  border:1px solid var(--line);border-radius:14px;padding:20px 22px;color:var(--ink);
+  transition:border-color .16s,background .16s}
+.route:hover{border-color:var(--ink-3)}
+.route[aria-pressed="true"]{border-color:var(--indigo);background:var(--tint);
+  box-shadow:inset 0 0 0 1px var(--indigo)}
+.route .rt{display:flex;align-items:center;gap:10px;font-weight:600;font-size:1rem}
+.route .rd{font-size:.86rem;color:var(--ink-2);margin-top:7px}
+.route .tick{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);flex:none;
+  position:relative}
+.route[aria-pressed="true"] .tick{background:var(--indigo);border-color:var(--indigo)}
+.route[aria-pressed="true"] .tick::after{content:"";position:absolute;left:5px;top:2px;width:5px;
+  height:9px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(42deg)}
+
+/* ---- the step timeline ---------------------------------------------------
+   A single spine down the left with the number sitting on it. The connecting
+   line is drawn on the step rather than the container so the last one can drop
+   it without a special container rule. */
+.flow{display:none;margin-top:54px}
+.flow[data-active]{display:block}
+.stp{display:grid;grid-template-columns:46px 1fr;gap:24px;position:relative;padding-bottom:46px}
+.stp::before{content:"";position:absolute;left:22px;top:52px;bottom:6px;width:2px;background:var(--line)}
+.stp:last-child::before{display:none}
+.stp:last-child{padding-bottom:0}
+.num{width:46px;height:46px;border-radius:50%;background:var(--bg);border:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;
+  z-index:1;letter-spacing:-.03em}
+.stp[data-done] .num{background:var(--ok);border-color:var(--ok);color:#fff}
+.stp h2{font-size:1.24rem;margin-bottom:9px}
+.stp .b{color:var(--ink-2);font-size:.94rem;max-width:58ch}
+.stp .b p{margin:0 0 .85em}
+.stp .b p:last-child{margin-bottom:0}
+.stp .b b{color:var(--ink);font-weight:600}
+.stp .codebox{margin-top:16px;font-size:.8rem}
+.split{display:grid;grid-template-columns:1fr auto;gap:34px;align-items:start;margin-top:18px}
+
+/* ---- phone diagrams ------------------------------------------------------
+   Drawn rather than screenshotted, in this site's own palette, so they read as
+   diagrams of what to look for and never as photographs of a real device. The
+   labels a reader must find are exact; everything around them is filler. */
+.phone{width:250px;flex:none;border:1px solid var(--line);border-radius:22px;background:var(--tint);
+  padding:9px}
+.screen{background:var(--bg);border:1px solid var(--line);border-radius:15px;overflow:hidden}
+.sbar{display:flex;justify-content:space-between;padding:8px 13px 5px;font-family:var(--mono);
+  font-size:.58rem;color:var(--ink-3);letter-spacing:.02em}
+.stitle{padding:3px 14px 11px;font-weight:700;font-size:.9rem;letter-spacing:-.02em}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 14px;
+  font-size:.71rem;color:var(--ink-3);border-top:1px solid var(--line);line-height:1.35}
+.srow .k{color:var(--ink-2)}
+.srow.hot{background:color-mix(in srgb,var(--indigo) 11%,transparent);
+  box-shadow:inset 3px 0 0 var(--indigo)}
+.srow.hot .k{color:var(--ink);font-weight:600}
+.sw{width:28px;height:16px;border-radius:99px;background:var(--line);position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
+  background:var(--bg);transition:left .16s}
+.sw.on{background:var(--ok)}
+.sw.on::after{left:14px}
+.cue{display:inline-flex;align-items:center;gap:6px;margin-top:11px;font-family:var(--mono);
+  font-size:.63rem;letter-spacing:.09em;text-transform:uppercase;color:var(--indigo);
+  border:1px solid color-mix(in srgb,var(--indigo) 40%,var(--line));border-radius:99px;
+  padding:4px 11px;background:color-mix(in srgb,var(--indigo) 8%,transparent)}
+.phone .cue{margin:11px 4px 4px}
+
+/* dialog style screens, for the pairing code and the authorisation prompt */
+.dlg{padding:16px 15px}
+.dlg .dt{font-weight:700;font-size:.86rem;letter-spacing:-.02em;margin-bottom:9px}
+.dlg .dp{font-size:.7rem;color:var(--ink-3);margin:0 0 12px;line-height:1.5}
+.code6{font-family:var(--mono);font-size:1.5rem;font-weight:600;letter-spacing:.14em;color:var(--ink);
+  text-align:center;padding:9px 0;background:var(--tint);border:1px solid var(--line);border-radius:9px}
+.addr{font-family:var(--mono);font-size:.7rem;color:var(--ink-2);text-align:center;margin-top:9px}
+.dbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;font-size:.72rem;font-weight:600}
+.dbtns .g{color:var(--ink-3)}
+.dbtns .a{color:var(--indigo)}
+.chk{display:flex;align-items:center;gap:8px;font-size:.68rem;color:var(--ink-2);margin-top:11px}
+.chk i{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--indigo);background:var(--indigo);
+  flex:none;position:relative}
+.chk i::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:7px;
+  border-right:1.6px solid #fff;border-bottom:1.6px solid #fff;transform:rotate(42deg)}
+
+/* ---- finish -------------------------------------------------------------- */
+.done{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center;
+  border:1px solid var(--line);border-radius:16px;padding:34px 36px;background:var(--tint);margin-top:8px}
+.done img{width:236px;border-radius:12px;display:block;box-shadow:var(--shadow),0 0 0 1px var(--shot-ring)}
+.checks{display:grid;gap:9px;margin:16px 0 0;padding:0;list-style:none}
+.checks li{display:flex;gap:10px;align-items:flex-start;font-size:.92rem;color:var(--ink-2)}
+.checks svg{width:16px;height:16px;flex:none;margin-top:4px;color:var(--ok)}
+.stuck{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+.stuck div{border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.stuck h3{margin-bottom:6px}
+.stuck p{font-size:.87rem;color:var(--ink-2);margin:0}
+
+@media (max-width:880px){
+  .routes,.stuck{grid-template-columns:1fr}
+  .split,.done{grid-template-columns:1fr}
+  .done img{width:100%;max-width:236px;margin:0 auto}
+  .stp{grid-template-columns:36px 1fr;gap:16px}
+  .stp::before{left:17px;top:42px}
+  .num{width:36px;height:36px;font-size:.9rem}
+  .phone{width:100%;max-width:250px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="brand" href="./"><img src="assets/icon.png" alt="">Pixel Audio Bridge</a>
+    <span class="sp">
+      <a class="navlink" href="./#install">Install</a>
+      <a class="navlink" href="getting-started.html" aria-current="page">Get started</a>
+      <a class="navlink" href="how-it-works.html">How it works</a>
+      <a class="navlink" href="troubleshooting.html">Troubleshooting</a>
+      <a class="navlink" href="privacy.html">Privacy</a>
+      <a class="navlink" href="security.html">Security</a>
+      <button class="iconbtn" id="theme" type="button" aria-label="Switch between light and dark">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg>
+      </button>
+    </span>
+  </nav>
+
+  <header class="top">
+    <div class="updated">Getting started</div>
+    <h1>From nothing to sound.</h1>
+    <p class="lede">Your phone has to be told it is allowed to talk to your Mac. That is the
+    only fiddly part, it is done once, and this page walks the whole thing.</p>
+    <div class="timing">
+      <span><b>About five minutes</b></span>
+      <span>Android <b>11 or later</b></span>
+      <span>A cable is <b>optional</b></span>
+    </div>
+  </header>
+
+  <section style="padding-bottom:0">
+    <div class="shead">
+      <h2>Pick how your phone will connect</h2>
+      <p>The steps change slightly depending on this. You can switch later, and doing one does
+      not stop you doing the other.</p>
+    </div>
+
+    <div class="routes">
+      <button class="route" id="r-usb" type="button" aria-pressed="true" aria-controls="flow-usb">
+        <span class="rt"><span class="tick"></span> I have a USB cable</span>
+        <span class="rd">Simplest, and the lowest latency at 191 ms. Best if the phone will sit
+        next to the Mac anyway.</span>
+      </button>
+      <button class="route" id="r-wifi" type="button" aria-pressed="false" aria-controls="flow-wifi">
+        <span class="rt"><span class="tick"></span> Wi-Fi only, no cable</span>
+        <span class="rd">Never needs a cable, not even once. Latency rises to about 376 ms
+        because the buffer has to absorb network jitter.</span>
+      </button>
+    </div>
+  </section>
+
+  <section>
+    <!-- ============================================================ cable -->
+    <div class="flow" id="flow-usb" data-active="true">
+
+      <div class="stp">
+        <div class="num">1</div>
+        <div>
+          <h2>Install the app on your Mac</h2>
+          <div class="b">
+            <p>Either route gives you the same signed and notarised app. Homebrew also installs
+            <b>scrcpy</b>, which the bridge needs.</p>
+            <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>
+            <p style="margin-top:14px">You also need <b>adb</b>. If you have Android Studio it is
+            already there. If not, <span style="font-family:var(--mono);font-size:.86em">brew install --cask android-platform-tools</span>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp">
+        <div class="num">2</div>
+        <div>
+          <h2>Unlock Developer options on the phone</h2>
+          <div class="split">
+            <div class="b">
+              <p>Open <b>Settings</b>, then <b>About phone</b>. Find <b>Build number</b> at the
+              bottom and tap it seven times.</p>
+              <p>It counts the last few taps down out loud, then tells you that you are now a
+              developer. If it asks for your PIN, that is expected.</p>
+              <p>This does not change anything by itself. It only reveals a menu that was
+              hidden.</p>
+            </div>
+            <div class="phone">
+              <div class="screen">
+                <div class="sbar"><span>9:41</span><span>100%</span></div>
+                <div class="stitle">About phone</div>
+                <div class="srow"><span class="k">Device name</span><span>Pixel</span></div>
+                <div class="srow"><span class="k">Model</span><span>GF5KQ</span></div>
+                <div class="srow"><span class="k">Android version</span><span>14</span></div>
+                <div class="srow hot"><span class="k">Build number</span><span>UP1A.231005</span></div>
+              </div>
+              <div class="cue">tap 7 times</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp">
+        <div class="num">3</div>
+        <div>
+          <h2>Turn on USB debugging</h2>
+          <div class="split">
+            <div class="b">
+              <p><b>Developer options</b> now exists in Settings, usually under <b>System</b>.
+              Open it and switch on <b>USB debugging</b>.</p>
+              <p>Leave it on. The bridge uses it every time it runs, so this is not a switch you
+              flip once and turn back off.</p>
+            </div>
+            <div class="phone">
+              <div class="screen">
+                <div class="sbar"><span>9:41</span><span>100%</span></div>
+                <div class="stitle">Developer options</div>
+                <div class="srow"><span class="k">Stay awake</span><span class="sw"></span></div>
+                <div class="srow hot"><span class="k">USB debugging</span><span class="sw on"></span></div>
+                <div class="srow"><span class="k">Wireless debugging</span><span class="sw"></span></div>
+              </div>
+              <div class="cue">switch this on</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp">
+        <div class="num">4</div>
+        <div>
+          <h2>Plug in and allow your Mac</h2>
+          <div class="split">
+            <div class="b">
+              <p>Connect the cable. Your phone asks whether to trust this computer and shows a
+              key fingerprint.</p>
+              <p>Tick <b>Always allow from this computer</b> so you are not asked again, then
+              tap <b>Allow</b>.</p>
+              <p>Nothing was granted before this moment. The approval is what lets your Mac in,
+              and it applies to that one Mac.</p>
+            </div>
+            <div class="phone">
+              <div class="screen dlg">
+                <div class="dt">Allow USB debugging?</div>
+                <p class="dp">The computer's RSA key fingerprint is:<br>
+                4A:E3:81:0C:9F:22:B7:D6</p>
+                <div class="chk"><i></i> Always allow from this computer</div>
+                <div class="dbtns"><span class="g">Cancel</span><span class="a">Allow</span></div>
+              </div>
+              <div class="cue">tick, then allow</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp" data-done>
+        <div class="num">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px" aria-hidden="true"><path d="M3 8.4 6.3 12 13 4.6"/></svg>
+        </div>
+        <div>
+          <h2>Open the app</h2>
+          <div class="b">
+            <p>That is the phone finished with. Launch Pixel Audio Bridge, put your headphones
+            on, and play something.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================= Wi-Fi -->
+    <div class="flow" id="flow-wifi">
+
+      <div class="stp">
+        <div class="num">1</div>
+        <div>
+          <h2>Install the app on your Mac</h2>
+          <div class="b">
+            <p>Either route gives you the same signed and notarised app. Homebrew also installs
+            <b>scrcpy</b>, which the bridge needs.</p>
+            <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>
+            <p style="margin-top:14px">You also need <b>adb</b>, and on this route you will type
+            two commands with it. If you do not have Android Studio,
+            <span style="font-family:var(--mono);font-size:.86em">brew install --cask android-platform-tools</span>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp">
+        <div class="num">2</div>
+        <div>
+          <h2>Unlock Developer options on the phone</h2>
+          <div class="split">
+            <div class="b">
+              <p>Open <b>Settings</b>, then <b>About phone</b>. Find <b>Build number</b> at the
+              bottom and tap it seven times.</p>
+              <p>It counts the last few taps down, then tells you that you are now a developer.
+              If it asks for your PIN, that is expected.</p>
+            </div>
+            <div class="phone">
+              <div class="screen">
+                <div class="sbar"><span>9:41</span><span>100%</span></div>
+                <div class="stitle">About phone</div>
+                <div class="srow"><span class="k">Device name</span><span>Pixel</span></div>
+                <div class="srow"><span class="k">Model</span><span>GF5KQ</span></div>
+                <div class="srow"><span class="k">Android version</span><span>14</span></div>
+                <div class="srow hot"><span class="k">Build number</span><span>UP1A.231005</span></div>
+              </div>
+              <div class="cue">tap 7 times</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp">
+        <div class="num">3</div>
+        <div>
+          <h2>Turn on Wireless debugging</h2>
+          <div class="split">
+            <div class="b">
+              <p>In <b>Developer options</b>, switch on <b>Wireless debugging</b>. This is a
+              different setting from USB debugging, and on this route you do not need the USB
+              one at all.</p>
+              <p>Your Mac and your phone have to be on the same network.</p>
+            </div>
+            <div class="phone">
+              <div class="screen">
+                <div class="sbar"><span>9:41</span><span>100%</span></div>
+                <div class="stitle">Developer options</div>
+                <div class="srow"><span class="k">Stay awake</span><span class="sw"></span></div>
+                <div class="srow"><span class="k">USB debugging</span><span class="sw"></span></div>
+                <div class="srow hot"><span class="k">Wireless debugging</span><span class="sw on"></span></div>
+              </div>
+              <div class="cue">switch this on</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp">
+        <div class="num">4</div>
+        <div>
+          <h2>Pair using the code your phone shows</h2>
+          <div class="split">
+            <div class="b">
+              <p>Open <b>Wireless debugging</b> and tap <b>Pair device with pairing code</b>.
+              Your phone puts a six digit code and an address on screen.</p>
+              <p>Type both into your Mac exactly as shown. The code works once and expires when
+              you close the dialog.</p>
+              <div class="codebox">adb pair 192.168.1.42:37105 481920</div>
+              <p style="margin-top:14px">This is also the answer to sharing a network with other
+              people. You are copying an address and a code off your own screen, so there is
+              nothing to scan for and no list of devices to pick the right one out of.</p>
+            </div>
+            <div class="phone">
+              <div class="screen dlg">
+                <div class="dt">Pair with device</div>
+                <p class="dp">Wi-Fi pairing code</p>
+                <div class="code6">481920</div>
+                <div class="addr">192.168.1.42:37105</div>
+                <div class="dbtns"><span class="g">Cancel</span></div>
+              </div>
+              <div class="cue">both are on your phone</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp">
+        <div class="num">5</div>
+        <div>
+          <h2>Connect, using the other address</h2>
+          <div class="split">
+            <div class="b">
+              <p>This is the one step people get wrong. The pairing dialog and the Wireless
+              debugging screen show <b>different ports</b>. Pairing is finished with, so now use
+              the address on the <b>Wireless debugging</b> screen itself.</p>
+              <div class="codebox">adb connect 192.168.1.42:41003</div>
+              <p style="margin-top:14px">Expect <b>connected to 192.168.1.42:41003</b>. If it
+              refuses, you almost certainly reused the pairing port.</p>
+            </div>
+            <div class="phone">
+              <div class="screen">
+                <div class="sbar"><span>9:41</span><span>100%</span></div>
+                <div class="stitle">Wireless debugging</div>
+                <div class="srow"><span class="k">Use wireless debugging</span><span class="sw on"></span></div>
+                <div class="srow hot"><span class="k">IP address &amp; Port</span><span>192.168.1.42:41003</span></div>
+                <div class="srow"><span class="k">Pair device with pairing code</span></div>
+              </div>
+              <div class="cue">this port, not the other</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stp" data-done>
+        <div class="num">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px" aria-hidden="true"><path d="M3 8.4 6.3 12 13 4.6"/></svg>
+        </div>
+        <div>
+          <h2>Open the app</h2>
+          <div class="b">
+            <p>Launch Pixel Audio Bridge and it will find the phone you just connected. Put your
+            headphones on and play something.</p>
+            <p>Wireless debugging resets when the phone reboots, so you will pair again after a
+            restart. Pairing is remembered, so it is usually only the connect step.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="shead">
+      <h2>What working looks like</h2>
+    </div>
+    <div class="done">
+      <div>
+        <ul class="checks">
+          <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.4 6.3 12 13 4.6"/></svg>
+            The status reads <b>Streaming</b> with a green dot.</li>
+          <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.4 6.3 12 13 4.6"/></svg>
+            <b>Phone</b> names your device and how it is connected.</li>
+          <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.4 6.3 12 13 4.6"/></svg>
+            <b>Output</b> names the headphones you are wearing.</li>
+          <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.4 6.3 12 13 4.6"/></svg>
+            Taking the headphones off stops it. Putting them back on starts it.</li>
+        </ul>
+        <p style="font-size:.9rem;color:var(--ink-2);margin:18px 0 0;max-width:52ch">Closing the
+        window does not stop playback. The app carries on from the menu bar, and quitting is
+        what tears everything down.</p>
+      </div>
+      <img src="assets/app-streaming.png" alt="The app window, showing Streaming, the connected phone and the output device">
+    </div>
+
+    <div class="stuck">
+      <div>
+        <h3>The app cannot see the phone</h3>
+        <p>Run <span style="font-family:var(--mono);font-size:.86em">adb devices</span>. If it is
+        empty, the phone has not authorised your Mac yet. Unplug and replug, and watch the phone
+        for the prompt.</p>
+      </div>
+      <div>
+        <h3>It says unauthorized</h3>
+        <p>The prompt was dismissed. In Developer options, tap <b>Revoke USB debugging
+        authorizations</b>, then reconnect and accept it.</p>
+      </div>
+      <div>
+        <h3>Wi-Fi will not connect</h3>
+        <p>Many guest and office networks isolate clients from each other, which blocks this
+        outright. A home network or the phone's own hotspot works.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:26px;font-size:.93rem;color:var(--ink-2)">Anything else is on the
+    <a href="troubleshooting.html">troubleshooting page</a>, and
+    <span style="font-family:var(--mono);font-size:.86em">pab doctor</span> reports every
+    dependency, device and setting in one pass.</p>
+  </section>
+
+  <footer>
+    <span class="l">
+      <a href="./">Home</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="https://github.com/Genymobile/scrcpy">Built on scrcpy</a>
+    </span>
+  </footer>
+
+</div>
+
+<script src="theme.js"></script>
+<script>
+// ---- route chooser ---------------------------------------------------------
+(function () {
+  var routes = [
+    { btn: document.getElementById("r-usb"),  flow: document.getElementById("flow-usb") },
+    { btn: document.getElementById("r-wifi"), flow: document.getElementById("flow-wifi") }
+  ];
+  if (routes.some(function (r) { return !r.btn || !r.flow; })) return;
+
+  function select(i) {
+    routes.forEach(function (r, n) {
+      r.btn.setAttribute("aria-pressed", String(n === i));
+      // The panes are toggled by attribute rather than inline style so the CSS
+      // keeps sole ownership of how a hidden flow behaves.
+      if (n === i) { r.flow.setAttribute("data-active", "true"); }
+      else { r.flow.removeAttribute("data-active"); }
+    });
+  }
+  routes.forEach(function (r, i) {
+    r.btn.addEventListener("click", function () { select(i); });
+  });
+})();
+</script>
+</body>
+</html>

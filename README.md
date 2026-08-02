@@ -59,7 +59,7 @@ already at `~/Library/Android/sdk/platform-tools`; otherwise
 Your phone needs three settings changed before any of this works: unlock
 Developer options, turn on USB debugging, then approve this Mac when it asks.
 There is no route that skips it, because the bridge reaches your phone through
-`adb`. [The three steps, with the reasoning](https://nicglazkov.github.io/pixel-audio-bridge/#setup)
+`adb`. [The getting started guide](https://nicglazkov.github.io/pixel-audio-bridge/getting-started.html) walks both routes with a picture of every screen you need to find.
 
 For wireless, run `pab enable-wireless` once while it is plugged in.
 
@@ -121,6 +121,7 @@ Start there when something is wrong.
 
 | | |
 |---|---|
+| [**Getting started**](https://nicglazkov.github.io/pixel-audio-bridge/getting-started.html) | Setting the phone up, step by step, with or without a cable |
 | [**How it works**](https://nicglazkov.github.io/pixel-audio-bridge/how-it-works.html) | The internals, the watchdog, and how every number was measured |
 | [**Troubleshooting**](https://nicglazkov.github.io/pixel-audio-bridge/troubleshooting.html) | No sound, clicks, wireless resets, and the rest |
 | [**Privacy**](https://nicglazkov.github.io/pixel-audio-bridge/privacy.html) | What is stored, and what leaves your machine. Nothing does |

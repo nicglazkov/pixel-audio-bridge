@@ -114,11 +114,10 @@
   font:600 .8rem/1 var(--disp);margin-bottom:14px}
 .steps h3{margin:0 0 7px}
 .steps p{font-size:.89rem;color:var(--ink-2);margin:0}
-.qa{margin-top:34px;border-left:2px solid var(--line);padding-left:20px;max-width:70ch}
-.qa h3{margin:0 0 9px}
-.qa p{font-size:.89rem;color:var(--ink-2);margin:0 0 11px}
-.qa p:last-child{margin-bottom:0}
-.qa .codebox{margin:14px 0;font-size:.79rem;line-height:1.7}
+.guide{display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;
+  margin-top:26px;border:1px solid var(--line);border-radius:14px;padding:22px 26px;background:var(--tint)}
+.guide h3{margin:0 0 5px}
+.guide p{font-size:.89rem;color:var(--ink-2);margin:0;max-width:56ch}
 @media (max-width:760px){
   .steps{grid-template-columns:1fr}
   .steps li:first-child{border-radius:12px 12px 0 0}
@@ -141,6 +140,7 @@
     <a class="brand" href="./"><img src="assets/icon.png" alt="">Pixel Audio Bridge</a>
     <span class="sp">
       <a class="navlink" href="#install">Install</a>
+      <a class="navlink" href="getting-started.html">Get started</a>
       <a class="navlink" href="how-it-works.html">How it works</a>
       <a class="navlink" href="troubleshooting.html">Troubleshooting</a>
       <a class="navlink" href="privacy.html">Privacy</a>
@@ -258,62 +258,35 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
   <section id="setup">
     <div class="shead">
       <h2>Set up your phone</h2>
-      <p>Three steps on the phone itself, done once. The wording varies a little between
-      manufacturers, but the path is the same.</p>
+      <p>Your phone has to be told it is allowed to talk to your Mac. Three steps, done once,
+      and a cable is optional.</p>
     </div>
 
     <ol class="steps">
       <li>
         <h3>Unlock Developer options</h3>
-        <p>Settings, About phone, then tap <b>Build number</b> seven times. It counts down the
-        last few taps so you know it is working.</p>
+        <p>Settings, About phone, then tap <b>Build number</b> seven times.</p>
       </li>
       <li>
-        <h3>Turn on USB debugging</h3>
-        <p>Developer options now appears in Settings, usually under System. Open it and switch
-        on <b>USB debugging</b>.</p>
+        <h3>Turn on debugging</h3>
+        <p>In Developer options, switch on <b>USB debugging</b>, or <b>Wireless debugging</b> if
+        you have no cable.</p>
       </li>
       <li>
-        <h3>Plug in and allow</h3>
-        <p>Your phone asks whether to trust this computer and shows a key fingerprint. Tick
-        <b>Always allow from this computer</b>, then Allow.</p>
+        <h3>Approve your Mac</h3>
+        <p>Over USB the phone asks you to trust the computer. Over Wi-Fi it shows a pairing
+        code instead.</p>
       </li>
     </ol>
 
-    <p class="note">That is the whole setup. To go wireless afterwards, run
-    <code>pab enable-wireless</code> once while the phone is still plugged in.</p>
-
-    <div class="qa">
-      <h3>Never plugging in at all?</h3>
-      <p>Android 11 and later can pair over Wi-Fi with no cable, ever. In Developer options,
-      switch on <b>Wireless debugging</b>, then tap <b>Pair device with pairing code</b>. Your
-      phone displays an address and a six digit code. Give both to your Mac, then connect using
-      the address shown on the Wireless debugging screen itself, which uses a different port
-      from the pairing one.</p>
-      <div class="codebox"><span class="c"># both values are on your phone's pairing dialog</span>
-adb pair 192.168.1.42:37105 481920
-<span class="c"># this address is on the Wireless debugging screen, not the dialog</span>
-adb connect 192.168.1.42:41003</div>
-      <p>On a shared network you never have to work out which device is yours. The address and
-      the code are both shown on your own phone, the code works once, and pairing fails without
-      it, so there is nothing to guess at and nothing to scan for. Some networks do isolate
-      clients from each other, which blocks this entirely; a home network or the phone's own
-      hotspot works.</p>
+    <div class="guide">
+      <div>
+        <h3>Not sure where any of that is?</h3>
+        <p>The getting started guide walks both routes with a picture of every screen you need
+        to find, and answers whether developer mode is really necessary.</p>
+      </div>
+      <a class="btn primary" href="getting-started.html">Getting started guide</a>
     </div>
-
-    <div class="qa">
-      <h3>Is developer mode really necessary?</h3>
-      <p>Yes, and it has to stay on. The bridge reaches your phone through <code>adb</code>,
-      the same debugging channel Android exposes to developers, and that is the only interface
-      that lets software on your Mac capture what the phone is playing. Every alternative
-      route is closed: macOS cannot act as a Bluetooth speaker, and Android does not let an
-      ordinary app hand its audio to a computer.</p>
-      <p>It is narrower than it sounds. USB debugging grants nothing on its own. A computer
-      gets access only after you approve its fingerprint on the phone, and you can withdraw
-      every approval at any time with <b>Revoke USB debugging authorizations</b>, in the same
-      Developer options menu.</p>
-    </div>
-
   </section>
 
   <footer>

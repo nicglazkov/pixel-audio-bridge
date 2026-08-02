@@ -28,12 +28,11 @@
 /* ---- requirements ------------------------------------------------------- */
 .req{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));border-top:1px solid var(--line);
      border-bottom:1px solid var(--line)}
-/* Direct children only: `.req div` would also match .k/.v/.n and pad each of
-   them, roughly doubling the height of every cell. */
+/* Direct children only: `.req div` would also match .v/.n and pad each of them,
+   roughly doubling the height of every cell. */
 .req > div{padding:22px 20px;border-right:1px solid var(--line)}
 .req > div:last-child{border-right:0}
-.req .k{font-family:var(--mono);font-size:.71rem;line-height:1.2;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
-.req .v{font-size:1.02rem;line-height:1.3;font-weight:600;letter-spacing:-.02em;margin-top:9px}
+.req .v{font-size:1.02rem;line-height:1.3;font-weight:600;letter-spacing:-.02em}
 .req .n{font-size:.83rem;color:var(--ink-2);margin-top:4px;line-height:1.4}
 
 /* ---- behaviour explorer -------------------------------------------------- */
@@ -48,6 +47,12 @@
 .trigger .mark{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line);flex:none;position:relative}
 .trigger .mark::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#fff;opacity:0;transition:opacity .14s}
 .trigger .t{font-size:.93rem;font-weight:500}
+
+/* Progress line under the active row while the tour is running. It disappears
+   the moment the reader takes over, so it never competes with a hover. */
+.trigger .prog{position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--indigo);opacity:.85}
+.trigger{position:relative}
+.tour-off .trigger .prog{display:none}
 
 .response{border:1px solid var(--line);border-radius:14px;padding:26px;background:var(--tint);
           position:sticky;top:24px;min-height:212px}
@@ -88,6 +93,7 @@
   <nav>
     <a class="brand" href="./"><img src="assets/icon.png" alt="">Pixel Audio Bridge</a>
     <span class="sp">
+      <a class="navlink" href="#quickstart">Quick start</a>
       <a class="navlink" href="#behaviour">Behaviour</a>
       <a class="navlink" href="#latency">Latency</a>
       <a class="navlink" href="privacy.html">Privacy</a>
@@ -124,43 +130,42 @@
   </header>
 
   <div class="req">
-    <div>
-      <div class="k">Your Mac</div>
-      <div class="v">macOS 14+</div>
-      <div class="n">Apple silicon or Intel</div>
-    </div>
-    <div>
-      <div class="k">Your phone</div>
-      <div class="v">Android 11+</div>
-      <div class="n">USB debugging enabled</div>
-    </div>
-    <div>
-      <div class="k">Your output</div>
-      <div class="v">Any device</div>
-      <div class="n">Headphones, a USB DAC, or speakers</div>
-    </div>
-    <div>
-      <div class="k">Also needs</div>
-      <div class="v">scrcpy and adb</div>
-      <div class="n">Both free, both on Homebrew</div>
-    </div>
+    <div><div class="v">macOS 14+</div><div class="n">Apple silicon or Intel</div></div>
+    <div><div class="v">Android 11+</div><div class="n">USB debugging enabled</div></div>
+    <div><div class="v">Any output device</div><div class="n">Headphones, a USB DAC, or speakers</div></div>
+    <div><div class="v">scrcpy and adb</div><div class="n">Both free, both on Homebrew</div></div>
   </div>
+
+  <section id="quickstart">
+    <div class="shead">
+      <h2>Quick start</h2>
+      <p>Three commands. You build it yourself, so there is nothing to notarize and no
+      Gatekeeper prompt to work around.</p>
+    </div>
+    <div class="codebox" style="margin-top:26px"><span class="c"># adb comes from Android Studio, or install platform-tools separately</span>
+brew install scrcpy
+git clone https://github.com/nicglazkov/pixel-audio-bridge.git
+cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
+    <p class="note">Then plug the phone in, accept the debugging prompt, and open
+    <code>build/PixelAudioBridge.app</code>. For wireless, run
+    <code>./bin/pab enable-wireless</code> once while it is plugged in.</p>
+  </section>
 
   <section id="behaviour">
     <div class="shead">
       <h2>How it reacts</h2>
-      <p>You never start this, stop it, or switch it over. Pick a situation and see what the
-      app does about it on its own.</p>
+      <p>You never start this, stop it, or switch it over. These play through on their own,
+      and stop as soon as you pick one yourself.</p>
     </div>
 
-    <div class="explorer">
+    <div class="explorer" id="explorer">
       <div class="triggers" role="tablist" aria-label="Situations">
-        <button class="trigger" role="tab" aria-selected="true"  aria-controls="resp" id="t0"><span class="mark"></span><span class="t">You put your headphones on</span></button>
-        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp" id="t1"><span class="mark"></span><span class="t">You take your headphones off</span></button>
-        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp" id="t2"><span class="mark"></span><span class="t">You unplug the USB cable</span></button>
-        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp" id="t3"><span class="mark"></span><span class="t">Your Mac switches to another output</span></button>
-        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp" id="t4"><span class="mark"></span><span class="t">Your phone falls asleep</span></button>
-        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp" id="t5"><span class="mark"></span><span class="t">You quit the app</span></button>
+        <button class="trigger" role="tab" aria-selected="true"  aria-controls="resp"><span class="mark"></span><span class="t">You put your headphones on</span><span class="prog"></span></button>
+        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp"><span class="mark"></span><span class="t">You take your headphones off</span><span class="prog"></span></button>
+        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp"><span class="mark"></span><span class="t">You unplug the USB cable</span><span class="prog"></span></button>
+        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp"><span class="mark"></span><span class="t">Your Mac switches to another output</span><span class="prog"></span></button>
+        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp"><span class="mark"></span><span class="t">Your phone falls asleep</span><span class="prog"></span></button>
+        <button class="trigger" role="tab" aria-selected="false" aria-controls="resp"><span class="mark"></span><span class="t">You quit the app</span><span class="prog"></span></button>
       </div>
 
       <div class="response" id="resp" role="tabpanel" aria-live="polite">
@@ -189,21 +194,6 @@
     other Bluetooth headphones differ, and a wired output device or a USB DAC skips that
     stage almost entirely. Over Wi-Fi the capture buffer grows to 200 ms, which is fine for
     music and noticeable on video.</p>
-  </section>
-
-  <section id="quickstart">
-    <div class="shead">
-      <h2>Quick start</h2>
-      <p>Three commands. You build it yourself, so there is nothing to notarize and no
-      Gatekeeper prompt to work around.</p>
-    </div>
-    <div class="codebox" style="margin-top:26px"><span class="c"># adb comes from Android Studio, or install platform-tools separately</span>
-brew install scrcpy
-git clone https://github.com/nicglazkov/pixel-audio-bridge.git
-cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
-    <p class="note">Then plug the phone in, accept the debugging prompt, and open
-    <code>build/PixelAudioBridge.app</code>. For wireless, run
-    <code>./bin/pab enable-wireless</code> once while it is plugged in.</p>
   </section>
 
   <footer>
@@ -243,6 +233,10 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
       body: "Quitting tears down every child process, verified to leave nothing running. No daemon or login item is installed to bring it back." }
   ];
 
+  var DWELL = 5000;   // long enough to finish reading a card
+  var STEP  = 50;
+
+  var explorer = document.getElementById("explorer");
   var tabs = Array.prototype.slice.call(document.querySelectorAll(".trigger"));
   var el = {
     state: document.getElementById("rstate"),
@@ -251,21 +245,40 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
     body: document.getElementById("rbody")
   };
 
+  var idx = 0, timer = null, elapsed = 0;
+  var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   function show(i) {
+    idx = i;
     var c = CASES[i];
-    tabs.forEach(function (t, n) { t.setAttribute("aria-selected", String(n === i)); });
+    tabs.forEach(function (t, n) {
+      t.setAttribute("aria-selected", String(n === i));
+      t.querySelector(".prog").style.width = "0";
+    });
     el.state.setAttribute("data-tone", c.tone);
     el.stateText.textContent = c.state;
     el.title.textContent = c.title;
     el.body.textContent = c.body;
   }
 
+  function tick() {
+    elapsed += STEP;
+    tabs[idx].querySelector(".prog").style.width = (elapsed / DWELL * 100) + "%";
+    if (elapsed >= DWELL) { elapsed = 0; show((idx + 1) % CASES.length); }
+  }
+
+  // The tour is a hint, not a carousel to fight with: the first deliberate
+  // interaction ends it for good rather than pausing and resuming underfoot.
+  function takeOver(i) {
+    if (timer) { clearInterval(timer); timer = null; }
+    explorer.classList.add("tour-off");
+    if (typeof i === "number") show(i);
+  }
+
   tabs.forEach(function (t, i) {
-    // Hover previews, click and keyboard focus commit. One behaviour that works
-    // with a mouse, a keyboard and a touchscreen without three code paths.
-    t.addEventListener("mouseenter", function () { show(i); });
-    t.addEventListener("focus", function () { show(i); });
-    t.addEventListener("click", function () { show(i); });
+    t.addEventListener("mouseenter", function () { takeOver(i); });
+    t.addEventListener("focus", function () { takeOver(i); });
+    t.addEventListener("click", function () { takeOver(i); });
     t.addEventListener("keydown", function (e) {
       var d = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
       if (!d) return;
@@ -275,6 +288,26 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
   });
 
   show(0);
+
+  if (reduced) {
+    explorer.classList.add("tour-off");
+  } else {
+    // Only run while the section is actually on screen, so a reader who never
+    // scrolls this far does not arrive at case four.
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting && !timer && !explorer.classList.contains("tour-off")) {
+            timer = setInterval(tick, STEP);
+          } else if (!e.isIntersecting && timer) {
+            clearInterval(timer); timer = null;
+          }
+        });
+      }, { threshold: 0.35 }).observe(explorer);
+    } else {
+      timer = setInterval(tick, STEP);
+    }
+  }
 })();
 </script>
 </body>

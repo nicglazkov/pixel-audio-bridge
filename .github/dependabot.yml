@@ -1,0 +1,11 @@
+# The only dependency manifest in this repository is the CI workflow. scrcpy and
+# adb are runtime dependencies the user installs, so there is nothing else for
+# Dependabot to watch.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci

@@ -88,7 +88,7 @@ nav .navlink[aria-current="page"]{color:var(--ink);background:var(--tint)}
      font-weight:600;font-size:.93rem;line-height:1}
 .btn.primary{background:var(--indigo);color:#fff}
 .btn.primary:hover{text-decoration:none;filter:brightness(1.08)}
-.btn.primary svg{width:16px;height:16px;flex:none}
+.btn svg{width:16px;height:16px;flex:none}
 .btn.secondary{border:1px solid var(--line);color:var(--ink)}
 .btn.secondary:hover{text-decoration:none;background:var(--tint);border-color:var(--ink-3)}
 

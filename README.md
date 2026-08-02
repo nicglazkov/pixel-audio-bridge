@@ -11,7 +11,8 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-5B3FE0)](LICENSE)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-6E7689)](#what-you-need)
 [![191 ms wired](https://img.shields.io/badge/latency-191%20ms%20wired-0F8A57)](https://nicglazkov.github.io/pixel-audio-bridge/#latency)
-[![tests: 78](https://img.shields.io/badge/tests-78-6E7689)](tests)
+[![tests: 78](https://img.shields.io/badge/tests-78-6E7689)](#tests)
+[![notarized](https://img.shields.io/badge/signed-notarized%20by%20Apple-0F8A57)](#install)
 
 <br>
 
@@ -36,8 +37,32 @@ USB or your own network, out of whatever your Mac is already playing to.
 | **Phone** | Android 11+ | USB debugging enabled |
 | **Output** | Any device | Headphones, a USB DAC, or speakers |
 | **Tools** | `scrcpy` and `adb` | Both free, both on Homebrew |
+| **Install** | Homebrew or DMG | Signed and notarized, universal |
 
-## Quick start
+## Install
+
+```sh
+brew install --cask nicglazkov/tap/pixel-audio-bridge
+```
+
+Or download **[PixelAudioBridge.dmg](https://github.com/nicglazkov/pixel-audio-bridge/releases/latest/download/PixelAudioBridge.dmg)**
+and drag it to Applications.
+
+Signed and notarized by Apple and built universal, so it runs on Apple silicon
+and Intel with no Gatekeeper warning to click through.
+
+You also need **`adb`**, from the Android SDK. If you have Android Studio it is
+already at `~/Library/Android/sdk/platform-tools`; otherwise
+`brew install --cask android-platform-tools`. The Homebrew route installs
+`scrcpy` for you.
+
+Then enable USB debugging on the phone, plug it in, and accept the prompt. For
+wireless, run `pab enable-wireless` once while it is plugged in.
+
+<details>
+<summary><strong>Build from source instead</strong></summary>
+
+<br>
 
 ```sh
 brew install scrcpy
@@ -46,10 +71,11 @@ cd pixel-audio-bridge && ./build.sh
 open build/PixelAudioBridge.app
 ```
 
-Plug the phone in and accept the debugging prompt. For wireless, run
-`./bin/pab enable-wireless` once while it is plugged in.
+`./build.sh` produces a universal binary signed ad hoc, which is fine for your
+own machine. `SIGN=developer ./build.sh` signs with a Developer ID under
+hardened runtime, and `./release.sh` runs the full notarized release pipeline.
 
-You build it yourself, so there is nothing to notarize and no Gatekeeper prompt.
+</details>
 
 ## How it reacts
 

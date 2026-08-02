@@ -60,7 +60,7 @@ esac
 FAKE
 
 # pab checks for scrcpy before doing anything. The tests never get as far as
-# launching it, but the dependency check must pass on a machine without it —
+# launching it, but the dependency check must pass on a machine without it,
 # which is every CI runner.
 cat > "$FAKEBIN/scrcpy" <<'FAKE'
 #!/bin/bash

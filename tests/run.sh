@@ -8,7 +8,7 @@ rc=0
 ./tests/test_pab.sh || rc=1
 
 echo
-echo "compiling swift logic tests…"
+echo "compiling swift logic tests"
 swiftc -target arm64-apple-macosx14.0 -o build/logic-tests \
        app/BridgeController.swift tests/main.swift || exit 1
 ./build/logic-tests || rc=1

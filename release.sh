@@ -51,9 +51,20 @@ case "$SIGINFO" in
 esac
 lipo -archs "$APP/Contents/MacOS/PixelAudioBridge" | sed 's/^/  architectures: /'
 
-step "Building the DMG"
+step "Notarizing the app"
+# Two submissions, deliberately. Notarizing only the DMG leaves the app inside it
+# unstapled, because the DMG is assembled before the ticket exists. Gatekeeper
+# still passes such an app by querying Apple online, so the gap is invisible on a
+# connected machine and blocks a user whose first launch is offline.
 rm -rf "$DIST" "$ROOT/build/dmgroot"
-mkdir -p "$DIST" "$ROOT/build/dmgroot"
+mkdir -p "$DIST"
+ditto -c -k --keepParent "$APP" "$DIST/notarize-app.zip"
+xcrun notarytool submit "$DIST/notarize-app.zip" --keychain-profile "$PROFILE" --wait 2>&1 | sed 's/^/  /'
+xcrun stapler staple "$APP" 2>&1 | sed 's/^/  /'
+rm -f "$DIST/notarize-app.zip"
+
+step "Building the DMG around the stapled app"
+mkdir -p "$ROOT/build/dmgroot"
 cp -R "$APP" "$ROOT/build/dmgroot/"
 create-dmg \
   --volname "Pixel Audio Bridge" \
@@ -67,21 +78,19 @@ create-dmg \
 rm -rf "$ROOT/build/dmgroot"
 echo "  $(basename "$DMG"), $(du -h "$DMG" | cut -f1)"
 
-step "Notarizing (typically 2 to 15 minutes)"
+step "Notarizing and stapling the DMG"
 xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait 2>&1 | sed 's/^/  /'
-
-step "Stapling"
-# Both. The app inside a stapled DMG is not itself stapled.
-xcrun stapler staple "$DMG" 2>&1 | sed 's/^/  dmg: /'
-xcrun stapler staple "$APP" 2>&1 | sed 's/^/  app: /'
+xcrun stapler staple "$DMG" 2>&1 | sed 's/^/  /'
 
 step "Zipping the stapled app"
+# A zip cannot carry a ticket itself, so the app has to be stapled first.
 ditto -c -k --keepParent "$APP" "$ZIP"
 echo "  $(basename "$ZIP"), $(du -h "$ZIP" | cut -f1)"
 
 step "Verifying the way a stranger's Mac will"
 spctl -a -vvv -t install "$APP" 2>&1 | sed 's/^/  /'
-xcrun stapler validate "$DMG" 2>&1 | sed 's/^/  /'
+xcrun stapler validate "$APP" 2>&1 | sed 's/^/  app: /'
+xcrun stapler validate "$DMG" 2>&1 | sed 's/^/  dmg: /'
 
 step "Checksums for the Homebrew cask"
 shasum -a 256 "$DMG" | sed 's/^/  /'

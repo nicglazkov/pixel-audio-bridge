@@ -90,7 +90,10 @@
   background:var(--indigo);color:#fff;font-weight:600;font-size:.94rem;line-height:1}
 .dl:hover{text-decoration:none;filter:brightness(1.08)}
 .dl svg{width:17px;height:17px;flex:none}
-.dlmeta{font-family:var(--mono);font-size:.76rem;color:var(--ink-3);margin-top:11px}
+.either{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.either .codebox{flex:0 1 auto;min-width:0}
+.or{flex:none;font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.either .dl{flex:none}
 .notarized{display:inline-flex;align-items:center;gap:7px;font-size:.83rem;color:var(--ok);
   border:1px solid color-mix(in srgb,var(--ok) 35%,var(--line));border-radius:99px;
   padding:5px 12px;background:color-mix(in srgb,var(--ok) 8%,transparent)}
@@ -192,9 +195,8 @@
     <div class="install">
       <div class="tabrow">
       <div class="tabs" role="tablist" aria-label="Install method">
-        <button role="tab" aria-selected="true"  aria-controls="pane-brew" id="tab-brew">Homebrew</button>
-        <button role="tab" aria-selected="false" aria-controls="pane-dmg"  id="tab-dmg">Download</button>
-        <button role="tab" aria-selected="false" aria-controls="pane-src"  id="tab-src">Build from source</button>
+        <button role="tab" aria-selected="true"  aria-controls="pane-get" id="tab-get">Homebrew or DMG</button>
+        <button role="tab" aria-selected="false" aria-controls="pane-src" id="tab-src">Build from source</button>
       </div>
         <div class="notarized">
           <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2 1.6 3v4.7c0 4 2.7 7.7 6.4 8.6 3.7-.9 6.4-4.6 6.4-8.6V3L8 .2Zm3.4 5.9-4 4a.8.8 0 0 1-1.1 0L4.6 8.4a.8.8 0 1 1 1.1-1.1l1.1 1.1 3.5-3.4a.8.8 0 0 1 1.1 1.1Z"/></svg>
@@ -202,21 +204,19 @@
         </div>
       </div>
 
-      <div class="pane" id="pane-brew" role="tabpanel" aria-labelledby="tab-brew" data-active="true">
-        <p class="why">Installs the app and pulls in scrcpy for you, and <code>brew upgrade</code>
-        keeps it current.</p>
-        <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>
-      </div>
-
-      <div class="pane" id="pane-dmg" role="tabpanel" aria-labelledby="tab-dmg">
-        <p class="why">Open the disk image and drag the app to Applications.</p>
-        <a class="dl" href="https://github.com/nicglazkov/pixel-audio-bridge/releases/latest/download/PixelAudioBridge.dmg">
-          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a.8.8 0 0 1 .8.8v7.1l2.3-2.3a.8.8 0 1 1 1.1 1.1l-3.6 3.7a.8.8 0 0 1-1.2 0L3.8 7.7a.8.8 0 0 1 1.1-1.1l2.3 2.3V1.8A.8.8 0 0 1 8 1ZM2.8 12.4a.8.8 0 0 1 .8.8v.6h8.8v-.6a.8.8 0 0 1 1.6 0v1.4a.8.8 0 0 1-.8.8H2.8a.8.8 0 0 1-.8-.8v-1.4a.8.8 0 0 1 .8-.8Z"/></svg>
-          Download the DMG
-        </a>
-        <div class="dlmeta" id="dlmeta">universal, macOS 14+</div>
-        <p class="after">You install <code>scrcpy</code> and <code>adb</code> yourself here. The
-        Homebrew route installs <code>scrcpy</code> for you.</p>
+      <div class="pane" id="pane-get" role="tabpanel" aria-labelledby="tab-get" data-active="true">
+        <p class="why">The same notarized app either way. Homebrew pulls in <code>scrcpy</code>
+        for you and keeps the app current with <code>brew upgrade</code>.</p>
+        <div class="either">
+          <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>
+          <span class="or">or</span>
+          <a class="dl" href="https://github.com/nicglazkov/pixel-audio-bridge/releases/latest/download/PixelAudioBridge.dmg">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a.8.8 0 0 1 .8.8v7.1l2.3-2.3a.8.8 0 1 1 1.1 1.1l-3.6 3.7a.8.8 0 0 1-1.2 0L3.8 7.7a.8.8 0 0 1 1.1-1.1l2.3 2.3V1.8A.8.8 0 0 1 8 1ZM2.8 12.4a.8.8 0 0 1 .8.8v.6h8.8v-.6a.8.8 0 0 1 1.6 0v1.4a.8.8 0 0 1-.8.8H2.8a.8.8 0 0 1-.8-.8v-1.4a.8.8 0 0 1 .8-.8Z"/></svg>
+            Download the DMG
+          </a>
+        </div>
+        <p class="after">Drag the app to Applications if you take the disk image, and install
+        <code>scrcpy</code> yourself.</p>
       </div>
 
       <div class="pane" id="pane-src" role="tabpanel" aria-labelledby="tab-src">
@@ -318,7 +318,6 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
       <a href="https://github.com/nicglazkov/pixel-audio-bridge/blob/main/LICENSE">MIT licence</a>
       <a href="https://github.com/Genymobile/scrcpy">Built on scrcpy</a>
     </span>
-    <span>No accounts, no telemetry, no third-party requests.</span>
   </footer>
 
 </div>

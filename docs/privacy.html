@@ -48,11 +48,11 @@ footer{margin-top:56px}
   </nav>
 
   <header class="top doc">
-    <div class="updated">Last updated 1 August 2026</div>
+    <div class="updated">Last updated 2 August 2026</div>
     <h1>Privacy</h1>
     <div class="tldr">
       <span class="tag"><span class="d"></span> The short version</span>
-      <p>The app collects nothing, sends nothing anywhere, and talks only to your own phone.
+      <p>The app collects nothing and talks only to your own phone, unless you switch on the update check.
       This site sets no cookies and loads nothing from third parties.</p>
     </div>
     <p style="margin-top:22px">Pixel Audio Bridge is a local utility. It has no backend, no
@@ -69,10 +69,20 @@ footer{margin-top:56px}
     CoreAudio, and nothing in between retains it.</p>
 
     <h2>Network activity</h2>
-    <p>The app makes <strong>no requests to any server operated by the author, or to any third
-    party</strong>. There are no update checks, no crash reporting, no telemetry, and no
-    licence or activation calls.</p>
-    <p>The only network traffic it causes is between your Mac and your own phone:</p>
+    <p>The app makes <strong>no requests to any server operated by the author</strong>. There
+    is no crash reporting, no telemetry, and no licence or activation call. It has no backend
+    to talk to.</p>
+    <p>There is exactly one request it can ever make to a third party, and it does not make it
+    unless you say so:</p>
+    <div class="callout">
+      <p><b>The update check is off until you turn it on.</b> On first launch the app asks
+      whether it may check for updates. Until you answer, and permanently if you decline, it
+      contacts nothing. If you accept, once a day it asks GitHub's release API whether a newer
+      version exists. The request carries no identifier, no device information and no usage
+      data, and the reply is a version number. GitHub will see your IP address, as it would
+      if you visited the releases page yourself. You can change your mind at any time.</p>
+    </div>
+    <p>Everything else it causes is between your Mac and your own phone:</p>
     <table>
       <thead><tr><th>Path</th><th>When</th><th>Contents</th></tr></thead>
       <tbody>

@@ -100,6 +100,58 @@ struct PhoneDevice: Codable, Hashable, Identifiable {
     }
 }
 
+/// Where each external tool was found. An empty path means it is not installed,
+/// which is the single most common reason a fresh install does nothing useful.
+struct Dependencies: Codable {
+    var scrcpy: String = ""
+    var adb: String = ""
+    var paboutput: String = ""
+
+    init() {}
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        scrcpy    = try c.decodeIfPresent(String.self, forKey: .scrcpy) ?? ""
+        adb       = try c.decodeIfPresent(String.self, forKey: .adb) ?? ""
+        paboutput = try c.decodeIfPresent(String.self, forKey: .paboutput) ?? ""
+    }
+
+    var missing: [Tool] { Tool.allCases.filter { path(for: $0).isEmpty } }
+    var isSatisfied: Bool { missing.isEmpty }
+
+    func path(for tool: Tool) -> String {
+        switch tool {
+        case .scrcpy: return scrcpy
+        case .adb:    return adb
+        }
+    }
+
+    /// paboutput ships inside the bundle, so it is deliberately not offered as
+    /// something the user could install. Its absence is a broken build.
+    enum Tool: String, CaseIterable, Identifiable {
+        case scrcpy, adb
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .scrcpy: return "scrcpy"
+            case .adb:    return "adb"
+            }
+        }
+        var why: String {
+            switch self {
+            case .scrcpy: return "Captures the audio and plays it"
+            case .adb:    return "Talks to the phone, from the Android SDK"
+            }
+        }
+        var installCommand: String {
+            switch self {
+            case .scrcpy: return "brew install scrcpy"
+            case .adb:    return "brew install --cask android-platform-tools"
+            }
+        }
+    }
+}
+
 struct BridgeInfo: Codable {
     var device: String = ""
     var device_name: String = ""
@@ -116,6 +168,7 @@ struct BridgeInfo: Codable {
     var output_buffer: Int = 5
     var running: Bool = false
     var pgid: String = ""
+    var deps: Dependencies = Dependencies()
     var outputs: [AudioOutput] = []
     var phones: [PhoneDevice] = []
 
@@ -145,6 +198,7 @@ struct BridgeInfo: Codable {
         buffer_wifi   = try c.decodeIfPresent(Int.self,  forKey: .buffer_wifi)   ?? 200
         output_buffer = try c.decodeIfPresent(Int.self,  forKey: .output_buffer) ?? 5
         running       = try c.decodeIfPresent(Bool.self, forKey: .running)       ?? false
+        deps          = try c.decodeIfPresent(Dependencies.self,   forKey: .deps)    ?? Dependencies()
         outputs       = try c.decodeIfPresent([AudioOutput].self, forKey: .outputs) ?? []
         phones        = try c.decodeIfPresent([PhoneDevice].self, forKey: .phones) ?? []
     }
@@ -157,8 +211,9 @@ struct BridgeInfo: Codable {
 
 enum BridgeLogic {
 
-    /// Measured, not estimated: CoreAudio reports this as the AirPods Max device
-    /// latency. It dominates the budget and no setting changes it.
+    /// Measured, not estimated: CoreAudio reported this device latency for the
+    /// Bluetooth headphones it was timed on. It dominates the budget, no setting
+    /// changes it, and it differs between models, so treat it as indicative.
     static let bluetoothMs = 171
 
     /// Phones reachable over the chosen link, one entry per physical handset.
@@ -236,7 +291,8 @@ final class BridgeController: ObservableObject {
         didSet { persistAndReload(transport != oldValue, transport.rawValue, "transport") }
     }
 
-    /// CoreAudio UID to route to. Empty means "match by name" (the AirPods Max).
+    /// CoreAudio UID to route to. Empty means follow the configured name match,
+    /// or the current system default output when no name is configured.
     @Published var selectedOutput: String = "" {
         didSet { persistAndReload(selectedOutput != oldValue, selectedOutput, "selectedOutput") }
     }
@@ -257,6 +313,59 @@ final class BridgeController: ObservableObject {
         }
     }
 
+    // MARK: Updates
+
+    /// Version string of a newer release, once one has been seen. Nil the rest of
+    /// the time, including on every kind of failure.
+    @Published var availableUpdate: String?
+
+    /// False until `pab info` has been read once. Until then `info` holds its
+    /// defaults, where every dependency path is empty, and treating that as
+    /// "nothing is installed" would flash a setup screen on every launch and
+    /// would stick permanently if a decode ever failed.
+    @Published private(set) var hasLoadedInfo = false
+
+    /// Unasked until the user answers the first-launch prompt. Nothing touches
+    /// the network while this is .unasked, which is what lets the privacy policy
+    /// keep saying the app makes no requests you did not agree to.
+    @Published var updateConsent: UpdateConsent = .unasked {
+        didSet {
+            guard updateConsent != oldValue else { return }
+            UserDefaults.standard.set(updateConsent.rawValue, forKey: "updateConsent")
+            if updateConsent == .granted { checkForUpdates(force: true) }
+            if updateConsent == .declined { availableUpdate = nil }
+        }
+    }
+
+    func checkForUpdates(force: Bool = false) {
+        guard updateConsent == .granted else { return }
+        let d = UserDefaults.standard
+        if !force {
+            let last = d.double(forKey: "lastUpdateCheck")
+            guard Date().timeIntervalSince1970 - last > UpdateCheck.interval else { return }
+        }
+        d.set(Date().timeIntervalSince1970, forKey: "lastUpdateCheck")
+        UpdateCheck.latestVersion { [weak self] newer in
+            DispatchQueue.main.async {
+                // A version the user already dismissed stays dismissed, but only
+                // that one: anything later is announced again.
+                guard let newer else {
+                    self?.availableUpdate = nil
+                    return
+                }
+                let dismissed = UserDefaults.standard.string(forKey: "dismissedUpdate") ?? ""
+                self?.availableUpdate = (newer == dismissed) ? nil : newer
+            }
+        }
+    }
+
+    /// Dismissing hides the banner for that version only, so the next release
+    /// says so again rather than being swallowed forever.
+    func dismissUpdate() {
+        if let v = availableUpdate { UserDefaults.standard.set(v, forKey: "dismissedUpdate") }
+        availableUpdate = nil
+    }
+
     private var process: Process?
     private var stoppingIntentionally = false
     private var consecutiveFailures = 0
@@ -274,6 +383,8 @@ final class BridgeController: ObservableObject {
         // Both default to true on a fresh install, where object(forKey:) is nil.
         enabled     = (d.object(forKey: "enabled") as? Bool) ?? true
         guardOutput = (d.object(forKey: "guardOutput") as? Bool) ?? true
+        updateConsent = UpdateConsent(rawValue: d.string(forKey: "updateConsent") ?? "") ?? .unasked
+        checkForUpdates()
     }
 
     // MARK: Paths
@@ -333,7 +444,12 @@ final class BridgeController: ObservableObject {
         if !selectedOutput.isEmpty {
             return info.outputs.first { $0.uid == selectedOutput }?.name ?? "the selected output"
         }
-        return info.device_match.isEmpty ? "AirPods Max" : info.device_match
+        // No name configured means the bridge follows whatever this Mac is
+        // playing through, so there is no absent device to name.
+        if info.device_match.isEmpty {
+            return info.default_name.isEmpty ? "your output device" : info.default_name
+        }
+        return info.device_match
     }
 
     var outputDeviceName: String {
@@ -405,6 +521,7 @@ final class BridgeController: ObservableObject {
             guard let decoded = try? JSONDecoder().decode(BridgeInfo.self, from: data) else { return }
             DispatchQueue.main.async {
                 self.info = decoded
+                self.hasLoadedInfo = true
                 // Device availability may have just changed; that is the trigger
                 // for leaving (or entering) the waiting state.
                 self.evaluate()

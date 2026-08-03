@@ -119,19 +119,32 @@ export FAKE_DEVICES='ABC123\tdevice\n10.0.0.5:5555\tdevice'
 
 # ------------------------------------------------------------ audio devices
 
-export FAKE_OUTPUTS='[{"uid":"BuiltInSpeakerDevice","name":"MacBook Pro Speakers","default":true},{"uid":"AA-BB:output","name":"Some AirPods Max","default":false}]'
+export FAKE_OUTPUTS='[{"uid":"BuiltInSpeakerDevice","name":"MacBook Pro Speakers","default":true},{"uid":"AA-BB:output","name":"Studio Headphones","default":false}]'
 export FAKE_DEFAULT='BuiltInSpeakerDevice\tMacBook Pro Speakers'
 
-AIRPODS_MATCH="AirPods Max"; OUTPUT_UID=""
+OUTPUT_MATCH="Studio Headphones"; OUTPUT_UID=""
 is "target matches the configured device name" "$(target_output_uid)" "AA-BB:output"
 
-AIRPODS_MATCH="airpods max"
+OUTPUT_MATCH="studio headphones"
 is "device-name matching is case-insensitive" "$(target_output_uid)" "AA-BB:output"
 
-AIRPODS_MATCH="Headphones That Do Not Exist"
+OUTPUT_MATCH="Headphones That Do Not Exist"
 is "absent device yields no target" "$(target_output_uid)" ""
 
-AIRPODS_MATCH="AirPods Max"; OUTPUT_UID="BuiltInSpeakerDevice"
+# The case a fresh install lands in. Naming no device has to mean "wherever this
+# Mac is already playing", not "match the empty string" and not a refusal.
+OUTPUT_MATCH=""
+is "no configured name follows the system default" "$(target_output_uid)" "BuiltInSpeakerDevice"
+
+# Config files written before 1.2 say AIRPODS_MATCH. Those users must not have
+# their pinned device silently forgotten on upgrade.
+OUTPUT_MATCH=""; AIRPODS_MATCH="Studio Headphones"
+_env_match=""
+OUTPUT_MATCH="${_env_match:-${OUTPUT_MATCH:-$AIRPODS_MATCH}}"
+is "a pre-1.2 config key still selects its device" "$(target_output_uid)" "AA-BB:output"
+AIRPODS_MATCH=""
+
+OUTPUT_MATCH="Studio Headphones"; OUTPUT_UID="BuiltInSpeakerDevice"
 is "an explicit UID overrides name matching" "$(target_output_uid)" "BuiltInSpeakerDevice"
 
 OUTPUT_UID="coreaudio/AA-BB:output"
@@ -142,7 +155,7 @@ is "a disconnected explicit UID yields no target" "$(target_output_uid)" ""
 OUTPUT_UID=""
 
 is "output_name_for resolves a display name" \
-   "$(output_name_for 'AA-BB:output')" "Some AirPods Max"
+   "$(output_name_for 'AA-BB:output')" "Studio Headphones"
 is "default_output_uid reads the current default" \
    "$(default_output_uid)" "BuiltInSpeakerDevice"
 

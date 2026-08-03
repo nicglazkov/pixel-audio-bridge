@@ -156,5 +156,42 @@ if let empty = try? JSONDecoder().decode(BridgeInfo.self, from: Data("{}".utf8))
     check("an empty payload degrades to defaults", false, "decode threw")
 }
 
+// ---- version comparison ---------------------------------------------------
+// This decides whether anyone ever sees an update banner, and the failure that
+// matters is the string compare that thinks 1.10 is older than 1.9.
+
+check("a higher patch is newer",            Version.isNewer("1.1.2", than: "1.1.1"))
+check("a higher minor is newer",            Version.isNewer("1.2.0", than: "1.1.9"))
+check("a higher major is newer",            Version.isNewer("2.0.0", than: "1.9.9"))
+check("10 beats 9 numerically, not by string",
+      Version.isNewer("1.10.0", than: "1.9.0"))
+check("the same version is not newer",     !Version.isNewer("1.1.1", than: "1.1.1"))
+check("an older version is not newer",     !Version.isNewer("1.0.0", than: "1.1.1"))
+check("a v prefix is tolerated",            Version.isNewer("v1.2.0", than: "1.1.0"))
+check("a missing component counts as zero", !Version.isNewer("1.2", than: "1.2.0"))
+check("a longer equal version is not newer", !Version.isNewer("1.2.0.0", than: "1.2"))
+check("trailing text does not inflate a component",
+      !Version.isNewer("1.2.0-beta", than: "1.2.0"))
+eq("parts splits numerically", Version.parts("v1.10.3"), [1, 10, 3])
+
+// ---- dependency reporting -------------------------------------------------
+
+if let d = try? JSONDecoder().decode(BridgeInfo.self, from: Data(
+    #"{"deps":{"scrcpy":"/opt/homebrew/bin/scrcpy","adb":"","paboutput":"/x"}}"#.utf8)) {
+    check("a missing tool is reported missing", d.deps.missing.map(\.rawValue) == ["adb"])
+    check("dependencies are not satisfied when one is absent", !d.deps.isSatisfied)
+    eq("a found tool keeps its path", d.deps.scrcpy, "/opt/homebrew/bin/scrcpy")
+} else {
+    check("dependency payload decodes", false, "decode threw")
+}
+
+// A default BridgeInfo reports both tools missing, which is exactly why the
+// view must not act on it before the first successful read. The controller
+// gates on hasLoadedInfo; this records why that gate has to exist.
+if let old = try? JSONDecoder().decode(BridgeInfo.self, from: Data("{}".utf8)) {
+    check("defaults look like nothing is installed, hence the load gate",
+          old.deps.missing.count == 2 && !old.deps.isSatisfied)
+}
+
 print("\n  \(passed) passed, \(failed) failed")
 exit(failed == 0 ? 0 : 1)

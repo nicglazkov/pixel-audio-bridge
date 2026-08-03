@@ -15,7 +15,7 @@ BUILD="$ROOT/build"
 APP="$BUILD/PixelAudioBridge.app"
 CONTENTS="$APP/Contents"
 
-VERSION="1.1.1"
+VERSION="1.2.0"
 MIN_MACOS="14.0"
 DEVELOPER_ID="Developer ID Application: Nicholas Glazkov (M7D6YHVDNK)"
 
@@ -75,6 +75,7 @@ PLIST
 echo "compiling app (${ARCHS[*]})"
 build_universal "$CONTENTS/MacOS/PixelAudioBridge" \
     "$ROOT/app/BridgeController.swift" \
+    "$ROOT/app/UpdateChecker.swift" \
     "$ROOT/app/ContentView.swift" \
     "$ROOT/app/PixelAudioBridgeApp.swift"
 

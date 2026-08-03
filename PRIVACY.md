@@ -24,11 +24,22 @@ CoreAudio; nothing in between retains it.
 
 ### Network activity
 
-The app makes **no requests to any server operated by the author, or to any
-third party**. There are no update checks, no crash reporting, no telemetry, and
-no license or activation calls.
+The app makes **no requests to any server operated by the author**. There is no
+crash reporting, no telemetry, and no licence or activation call. It has no
+backend to talk to.
 
-The only network traffic it causes is between your Mac and your own phone:
+There is exactly one request it can ever make to a third party, and it does not
+make it unless you say so.
+
+**The update check is off until you turn it on.** On first launch the app asks
+whether it may check for updates. Until you answer, and permanently if you
+decline, it contacts nothing. If you accept, once a day it asks GitHub's release
+API whether a newer version exists. The request carries no identifier, no device
+information and no usage data, and the reply is a version number. GitHub will see
+your IP address, as it would if you visited the releases page yourself. You can
+change your mind at any time.
+
+Everything else it causes is between your Mac and your own phone:
 
 | Path | When | Contents |
 |---|---|---|

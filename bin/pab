@@ -42,12 +42,13 @@ ADB_PORT=5555
 # Precedence: environment > saved config > built-in default. Capture the
 # environment before sourcing, because the config file assigns unconditionally
 # and would otherwise silently clobber an explicit override.
-_env_airpods="${AIRPODS_MATCH:-}"
+_env_match="${OUTPUT_MATCH:-${AIRPODS_MATCH:-}}"
 _env_phone_ip="${PHONE_IP:-}"
 _env_output_uid="${OUTPUT_UID:-}"
 _env_phone_serial="${PHONE_SERIAL:-}"
 
-AIRPODS_MATCH=""
+OUTPUT_MATCH=""
+AIRPODS_MATCH=""   # pre 1.2 name, still read from existing config files
 PHONE_IP=""
 OUTPUT_UID=""      # explicit device UID; empty means match by name
 PHONE_SERIAL=""    # explicit adb serial; empty means auto-select
@@ -56,7 +57,7 @@ mkdir -p "$CONFIG_DIR" "$RUN_DIR"
 # shellcheck source=/dev/null
 [ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
 
-AIRPODS_MATCH="${_env_airpods:-${AIRPODS_MATCH:-AirPods Max}}"
+OUTPUT_MATCH="${_env_match:-${OUTPUT_MATCH:-$AIRPODS_MATCH}}"
 PHONE_IP="${_env_phone_ip:-${PHONE_IP:-}}"
 
 # Remember what the config file itself declared, so a one-off --device/--serial
@@ -98,7 +99,7 @@ save_config() {
     cat > "$CONFIG_FILE" <<EOF
 # pixel-audio-bridge config, written by 'pab'
 PHONE_IP="$PHONE_IP"
-AIRPODS_MATCH="$AIRPODS_MATCH"
+OUTPUT_MATCH="$OUTPUT_MATCH"
 OUTPUT_UID="$_cfg_output_uid"
 PHONE_SERIAL="$_cfg_phone_serial"
 EOF
@@ -130,8 +131,10 @@ for o in json.load(sys.stdin):
 }
 
 # The device the bridge wants audio to reach: an explicit selection if present,
-# otherwise the first output whose name matches AIRPODS_MATCH. Emits nothing
-# when that device is not currently connected.
+# then a name match if one is configured, and otherwise whatever this Mac is
+# already playing through. That last case is the one a new install lands in, so
+# it has to work without the user having named anything. Emits nothing only when
+# a device was named and is not currently connected.
 target_output_uid() {
     if [ -n "$OUTPUT_UID" ]; then
         local want; want=$(norm_uid "$OUTPUT_UID")
@@ -143,12 +146,16 @@ for o in json.load(sys.stdin):
 " "$want" 2>/dev/null
         return 0
     fi
+    if [ -z "$OUTPUT_MATCH" ]; then
+        default_output_uid
+        return 0
+    fi
     outputs_json | python3 -c "
 import json,sys
 m=sys.argv[1].lower()
 for o in json.load(sys.stdin):
     if m in o['name'].lower(): print(o['uid']); break
-" "$AIRPODS_MATCH" 2>/dev/null
+" "$OUTPUT_MATCH" 2>/dev/null
 }
 
 # ------------------------------------------------------------------- transport
@@ -278,7 +285,10 @@ cmd_run() {
             if [ -n "$OUTPUT_UID" ]; then
                 die "selected output device is not connected"
             fi
-            die "no output device matching '$AIRPODS_MATCH' is connected"
+            if [ -n "$OUTPUT_MATCH" ]; then
+                die "no output device matching '$OUTPUT_MATCH' is connected"
+            fi
+            die "no audio output device is available"
         fi
         target_name=$(output_name_for "$target")
 
@@ -372,7 +382,7 @@ cmd_info() {
     printf '{'
     printf '"device":"%s",'         "$(esc_json "$target")"
     printf '"device_name":"%s",'    "$(esc_json "$(output_name_for "$target")")"
-    printf '"device_match":"%s",'   "$(esc_json "$AIRPODS_MATCH")"
+    printf '"device_match":"%s",'   "$(esc_json "$OUTPUT_MATCH")"
     printf '"output_uid":"%s",'     "$(esc_json "$OUTPUT_UID")"
     printf '"default_uid":"%s",'    "$(esc_json "$curu")"
     printf '"default_name":"%s",'   "$(esc_json "$curn")"
@@ -385,9 +395,18 @@ cmd_info() {
     printf '"output_buffer":%s,'    "$OUTPUT_BUFFER"
     printf '"running":%s,'          "$run"
     printf '"pgid":"%s",'           "$(esc_json "$pg")"
+    printf '"deps":%s,'             "$(deps_json)"
     printf '"outputs":%s,'          "$(outputs_json)"
     printf '"phones":%s'            "$(list_adb_json)"
     printf '}\n'
+}
+
+deps_json() {
+    printf '{'
+    printf '"scrcpy":"%s",'    "$(esc_json "$(command -v scrcpy || true)")"
+    printf '"adb":"%s",'       "$(esc_json "$(command -v adb || true)")"
+    printf '"paboutput":"%s"'  "$(esc_json "${PABOUTPUT:-}")"
+    printf '}'
 }
 
 list_adb_json() {

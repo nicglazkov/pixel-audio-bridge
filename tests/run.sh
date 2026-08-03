@@ -10,7 +10,7 @@ rc=0
 echo
 echo "compiling swift logic tests"
 swiftc -target arm64-apple-macosx14.0 -o build/logic-tests \
-       app/BridgeController.swift tests/main.swift || exit 1
+       app/BridgeController.swift app/UpdateChecker.swift tests/main.swift || exit 1
 ./build/logic-tests || rc=1
 
 echo

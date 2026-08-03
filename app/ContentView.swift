@@ -21,11 +21,19 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            hero
-            transportPicker
-            devicePickers
-            details
-            actions
+            // A missing tool makes every other control meaningless, so setup
+            // replaces the interface rather than sitting alongside it.
+            if bridge.hasLoadedInfo && !bridge.info.deps.isSatisfied {
+                setupNeeded
+            } else {
+                if bridge.updateConsent == .unasked { updateConsentCard }
+                if let newer = bridge.availableUpdate { updateBanner(newer) }
+                hero
+                transportPicker
+                devicePickers
+                details
+                actions
+            }
         }
         .padding(22)
         // Width is fixed; height follows content, so the window tightens up when
@@ -308,6 +316,163 @@ struct ContentView: View {
                     .foregroundStyle(.tertiary)
             }
         }
+    }
+}
+
+// MARK: - Setup and updates
+
+extension ContentView {
+
+    /// Shown until every external tool resolves. Names what is missing, where the
+    /// rest were found, and the exact command, because the previous behaviour was
+    /// a red "adb not found" with nowhere to go.
+    fileprivate var setupNeeded: some View {
+        let missing = bridge.info.deps.missing
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 9) {
+                Image(systemName: "wrench.and.screwdriver.fill")
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(missing.count == 1
+                         ? "One more thing to install"
+                         : "\(missing.count) things to install")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Pixel Audio Bridge uses these. They are free.")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(spacing: 0) {
+                ForEach(Dependencies.Tool.allCases) { tool in
+                    let path = bridge.info.deps.path(for: tool)
+                    HStack(spacing: 9) {
+                        Image(systemName: path.isEmpty ? "circle" : "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(path.isEmpty ? .secondary : Color.green)
+                            .frame(width: 16)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(tool.title).font(.system(size: 12, weight: .medium))
+                            Text(tool.why).font(.system(size: 10.5)).foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                        Text(path.isEmpty ? "not installed" : path)
+                            .font(.system(size: 10.5, design: .monospaced))
+                            .foregroundStyle(path.isEmpty ? .secondary : .primary)
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                            .frame(maxWidth: 170, alignment: .trailing)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    if tool != Dependencies.Tool.allCases.last { Divider() }
+                }
+            }
+            .background(Color.primary.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+
+            ForEach(missing) { tool in
+                CommandRow(command: tool.installCommand)
+            }
+
+            HStack(spacing: 8) {
+                Button("Check Again") { bridge.refresh() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                Button("Setup Guide") {
+                    NSWorkspace.shared.open(URL(string:
+                        "https://nicglazkov.github.io/pixel-audio-bridge/getting-started.html")!)
+                }
+                .controlSize(.large)
+                Spacer()
+            }
+        }
+    }
+
+    /// Asked once. Until it is answered the app has made no request of any kind,
+    /// which is the claim the privacy policy rests on.
+    fileprivate var updateConsentCard: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("Check for updates?")
+                .font(.system(size: 13, weight: .semibold))
+            Text("Once a day the app would ask GitHub whether a newer version exists. "
+                 + "It sends nothing about you or your devices, though GitHub will see "
+                 + "your IP address as with any download.")
+                .font(.system(size: 11.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                Button("Yes, Check") { bridge.updateConsent = .granted }
+                    .buttonStyle(.borderedProminent)
+                Button("No Thanks") { bridge.updateConsent = .declined }
+                Spacer()
+            }
+            .font(.system(size: 12))
+        }
+        .padding(13)
+        .background(Color.accentColor.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    fileprivate func updateBanner(_ version: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.down.circle.fill").foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Version \(version) is available")
+                    .font(.system(size: 12, weight: .medium))
+                Text("You have \(Bundle.appVersion)")
+                    .font(.system(size: 10.5)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Get It") { NSWorkspace.shared.open(UpdateCheck.releasesPage) }
+                .font(.system(size: 11.5))
+            Button {
+                bridge.dismissUpdate()
+            } label: {
+                Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.tertiary)
+            .help("Hide until the next release")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Color.accentColor.opacity(0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+    }
+}
+
+/// A command the user runs themselves, with one click to copy it. The app never
+/// installs anything on their behalf.
+private struct CommandRow: View {
+    let command: String
+    @State private var copied = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(command)
+                .font(.system(size: 11, design: .monospaced))
+                .textSelection(.enabled)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(command, forType: .string)
+                copied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { copied = false }
+            } label: {
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 10.5))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(copied ? Color.green : Color.secondary)
+            .help("Copy")
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .background(Color.primary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 7))
     }
 }
 

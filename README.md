@@ -60,10 +60,11 @@ not warn you or block it. Universal, so it runs on Apple silicon and Intel.
 Already have Android Studio? `adb` is at `~/Library/Android/sdk/platform-tools`
 and the app finds it there, so skip the second command.
 
-Your phone needs three settings changed before any of this works: unlock
-Developer options, turn on USB debugging, then approve this Mac when it asks.
-There is no route that skips it, because the bridge reaches your phone through
-`adb`. [The getting started guide](https://nicglazkov.github.io/pixel-audio-bridge/getting-started.html) walks both routes with a picture of every screen you need to find.
+Your phone needs Developer options unlocked first, then either USB debugging or
+Wireless debugging depending on whether you are using a cable. No route skips
+this, because the bridge reaches your phone through `adb`.
+[The getting started guide](https://nicglazkov.github.io/pixel-audio-bridge/getting-started.html)
+walks both, with a picture of every screen you need to find.
 
 No cable at all? **`pab pair`** does the whole Wi-Fi pairing. It finds the phone
 on your network, asks only for the six digit code the phone shows, and looks up

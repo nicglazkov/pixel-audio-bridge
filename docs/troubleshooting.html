@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="shared.css">
 <style>
 .lead{font-size:1.05rem;color:var(--ink-2);max-width:60ch;margin-top:14px}
+.where{font-size:.86rem;color:var(--ink-3);margin:10px 0 0}
 .first{border:1px solid var(--line);background:var(--tint);border-radius:14px;padding:22px 24px;margin:26px 0 34px}
 .first h2{margin:0 0 8px;font-size:1.1rem}
 .first p{margin:0 0 12px;font-size:.94rem}
@@ -55,7 +56,10 @@ footer{margin-top:56px}
       <h2>Start here</h2>
       <p>One command reports dependencies, output devices, adb transports and config in a
       single pass, and answers most questions before you have to ask them.</p>
-      <pre><code>./bin/pab doctor</code></pre>
+      <pre><code>pab doctor</code></pre>
+      <p class="where">Homebrew puts <code>pab</code> on your PATH. From the disk image it
+      lives inside the app, at
+      <code>/Applications/PixelAudioBridge.app/Contents/Resources/pab</code>.</p>
     </div>
   </header>
 
@@ -68,7 +72,7 @@ footer{margin-top:56px}
         connected in Bluetooth while being absent from CoreAudio in standby, and the bridge
         correctly waits rather than failing.</p>
         <p>Check what the app can actually see:</p>
-        <pre><code>./bin/pab doctor</code></pre>
+        <pre><code>pab doctor</code></pre>
         <p>If your device is not in the output list, play any sound on your Mac to wake it,
         then look again. The app starts on its own within about a second of it appearing.</p>
         <p>If the device is listed but the app still sits in Waiting, a name filter is pinning
@@ -101,7 +105,7 @@ footer{margin-top:56px}
       <div class="body">
         <p>That is sample skipping, which means the buffer is too small for the link. Raise
         it:</p>
-        <pre><code>./bin/pab run --wired --buffer 30</code></pre>
+        <pre><code>pab run --wired --buffer 30</code></pre>
         <p>The wired default of 15 ms is deliberately below scrcpy's own default of 50 ms, and
         it is the one figure in this project validated by listening rather than
         instrumentation. If 30 fixes it, keep 30.</p>
@@ -184,7 +188,7 @@ footer{margin-top:56px}
     </details>
 
     <h2>Still stuck</h2>
-    <p>Open an issue with the output of <code>./bin/pab doctor</code> attached. The issue
+    <p>Open an issue with the output of <code>pab doctor</code> attached. The issue
     template asks for it first, because it usually contains the answer.</p>
     <p>Please redact anything you would rather not share. The log can contain device names and
     local IP addresses.</p>

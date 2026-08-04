@@ -43,7 +43,13 @@ USB or your own network, out of whatever your Mac is already playing to.
 
 ```sh
 brew install --cask nicglazkov/tap/pixel-audio-bridge
+brew install --cask android-platform-tools   # skip if you have Android Studio
 ```
+
+Two commands. The first brings the app, `scrcpy` and the `pab` command; the
+second brings `adb`, which is only missing if you do not already have the
+Android SDK. The app checks for both on launch and tells you if either is
+absent, so there is nothing to get wrong.
 
 Or download **[PixelAudioBridge.dmg](https://github.com/nicglazkov/pixel-audio-bridge/releases/latest/download/PixelAudioBridge.dmg)**
 and drag it to Applications.
@@ -51,10 +57,8 @@ and drag it to Applications.
 Opens like any other Mac app. Apple has checked it for malware, so macOS will
 not warn you or block it. Universal, so it runs on Apple silicon and Intel.
 
-You also need **`adb`**, from the Android SDK. If you have Android Studio it is
-already at `~/Library/Android/sdk/platform-tools`; otherwise
-`brew install --cask android-platform-tools`. The Homebrew route installs
-`scrcpy` for you.
+Already have Android Studio? `adb` is at `~/Library/Android/sdk/platform-tools`
+and the app finds it there, so skip the second command.
 
 Your phone needs three settings changed before any of this works: unlock
 Developer options, turn on USB debugging, then approve this Mac when it asks.

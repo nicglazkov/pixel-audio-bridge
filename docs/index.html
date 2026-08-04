@@ -187,18 +187,20 @@
       </div>
 
       <div class="pane" id="pane-get" role="tabpanel" aria-labelledby="tab-get" data-active="true">
-        <p class="why">The same app either way, universal for Apple silicon and Intel. Homebrew pulls in <code>scrcpy</code>
-        for you and keeps the app current with <code>brew upgrade</code>.</p>
+        <p class="why">Two commands. The first brings the app and <code>scrcpy</code>, the
+        second brings <code>adb</code> and is only needed if you do not already have the
+        Android SDK.</p>
         <div class="either">
-          <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>
+          <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge
+brew install --cask android-platform-tools   <span class="c"># skip if you have Android Studio</span></div>
           <span class="or">or</span>
           <a class="dl" href="https://github.com/nicglazkov/pixel-audio-bridge/releases/latest/download/PixelAudioBridge.dmg">
             <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a.8.8 0 0 1 .8.8v7.1l2.3-2.3a.8.8 0 1 1 1.1 1.1l-3.6 3.7a.8.8 0 0 1-1.2 0L3.8 7.7a.8.8 0 0 1 1.1-1.1l2.3 2.3V1.8A.8.8 0 0 1 8 1ZM2.8 12.4a.8.8 0 0 1 .8.8v.6h8.8v-.6a.8.8 0 0 1 1.6 0v1.4a.8.8 0 0 1-.8.8H2.8a.8.8 0 0 1-.8-.8v-1.4a.8.8 0 0 1 .8-.8Z"/></svg>
             Download the DMG
           </a>
         </div>
-        <p class="after">Drag the app to Applications if you take the disk image, and install
-        <code>scrcpy</code> yourself.</p>
+        <p class="after">The disk image is the app alone. Drag it to Applications, then run both
+        commands above yourself, since nothing is installed for you on that route.</p>
       </div>
 
       <div class="pane" id="pane-src" role="tabpanel" aria-labelledby="tab-src">
@@ -210,10 +212,11 @@ cd pixel-audio-bridge &amp;&amp; ./build.sh</div>
       </div>
     </div>
 
-    <p class="note" style="margin-top:22px"><code>adb</code> comes from the Android SDK, already
-    at <code>~/Library/Android/sdk/platform-tools</code> if you have Android Studio and otherwise
-    <code>brew install --cask android-platform-tools</code>. Your phone needs
-    <a href="#setup">three settings changed</a> before any of this works.</p>
+    <p class="note" style="margin-top:22px">Already have Android Studio? <code>adb</code> is at
+    <code>~/Library/Android/sdk/platform-tools</code> and the app finds it there, so skip the
+    second command. Your phone also needs
+    <a href="#setup">three settings changed</a> before any of this works, and the app tells you
+    if anything is missing.</p>
   </section>
 
   <section id="behaviour">

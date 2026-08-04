@@ -174,11 +174,13 @@
         <div>
           <h2>Install the app on your Mac</h2>
           <div class="b">
-            <p>Either route gives you the same app. Homebrew also installs
-            <b>scrcpy</b>, which the bridge needs.</p>
-            <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>
-            <p style="margin-top:14px">You also need <b>adb</b>. If you have Android Studio it is
-            already there. If not, <span style="font-family:var(--mono);font-size:.86em">brew install --cask android-platform-tools</span>.</p>
+            <p>Two commands. The first brings the app, <b>scrcpy</b> and the <b>pab</b>
+            command. The second brings <b>adb</b>, and is only needed if you do not already
+            have the Android SDK.</p>
+            <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge
+brew install --cask android-platform-tools   <span class="c"># skip if you have Android Studio</span></div>
+            <p style="margin-top:14px">The app checks for both when it launches and names
+            anything missing, so there is nothing to get wrong here.</p>
           </div>
         </div>
       </div>
@@ -285,12 +287,13 @@
         <div>
           <h2>Install the app on your Mac</h2>
           <div class="b">
-            <p>Either route gives you the same app. Homebrew also installs
-            <b>scrcpy</b>, which the bridge needs.</p>
-            <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge</div>
-            <p style="margin-top:14px">You also need <b>adb</b>, and on this route you will type
-            two commands with it. If you do not have Android Studio,
-            <span style="font-family:var(--mono);font-size:.86em">brew install --cask android-platform-tools</span>.</p>
+            <p>Two commands. The first brings the app, <b>scrcpy</b> and the <b>pab</b>
+            command. The second brings <b>adb</b>, and is only needed if you do not already
+            have the Android SDK.</p>
+            <div class="codebox">brew install --cask nicglazkov/tap/pixel-audio-bridge
+brew install --cask android-platform-tools   <span class="c"># skip if you have Android Studio</span></div>
+            <p style="margin-top:14px">On this route <b>adb</b> does the pairing too, so the
+            second command matters unless you already have the Android SDK.</p>
           </div>
         </div>
       </div>

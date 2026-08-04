@@ -105,6 +105,78 @@ PHONE_SERIAL="$_cfg_phone_serial"
 EOF
 }
 
+
+# ------------------------------------------------------------------ presentation
+# Colour only when someone is actually watching. Piped output, a dumb terminal or
+# NO_COLOR all fall back to plain text, so `pab pair | tee` stays readable.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-dumb}" != "dumb" ]; then
+    C_DIM=$'\033[2m'; C_B=$'\033[1m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'
+    C_ERR=$'\033[31m'; C_ACC=$'\033[35m'; C_0=$'\033[0m'
+else
+    C_DIM=""; C_B=""; C_OK=""; C_WARN=""; C_ERR=""; C_ACC=""; C_0=""
+fi
+
+ui_say()   { printf '%s\n' "$*"; }
+ui_step()  { printf '\n%s%s%s\n' "$C_B" "$*" "$C_0"; }
+ui_good()  { printf '  %s+%s %s\n' "$C_OK" "$C_0" "$*"; }
+ui_bad()   { printf '  %sx%s %s\n' "$C_ERR" "$C_0" "$*"; }
+ui_hint()  { printf '  %s%s%s\n' "$C_DIM" "$*" "$C_0"; }
+ui_rule()  { printf '%s%s%s\n' "$C_DIM" "----------------------------------------------------------" "$C_0"; }
+
+# A phone screen drawn in the terminal, for the same reason the website draws
+# them: the reader is hunting for a specific label and a picture of it beats a
+# sentence describing where to look.
+ui_phone_box() {
+    local title="$1"; shift
+    local inner=30 bar line text mark
+    bar=$(printf '%*s' "$inner" '' | tr ' ' '-')
+    # Padding is applied to the plain text and the colour is wrapped around the
+    # padded field. Doing it the other way makes the escape sequences count
+    # toward the width, and every highlighted row comes out short.
+    printf '\n  %s.%s.%s\n' "$C_DIM" "$bar" "$C_0"
+    printf '  %s|%s %s%-*s%s %s|%s\n' "$C_DIM" "$C_0" "$C_B" $((inner - 2)) "$title" "$C_0" "$C_DIM" "$C_0"
+    printf '  %s|%s%s|%s\n' "$C_DIM" "$bar" "$C_DIM" "$C_0"
+    for line in "$@"; do
+        case "$line" in
+            '*'*) text="${line#\*}"; mark="$C_ACC" ;;
+            *)    text="$line";      mark="$C_DIM" ;;
+        esac
+        printf '  %s|%s %s%-*s%s %s|%s\n' "$C_DIM" "$C_0" "$mark" $((inner - 2)) "$text" "$C_0" "$C_DIM" "$C_0"
+    done
+    printf '  %s.%s.%s\n\n' "$C_DIM" "$bar" "$C_0"
+}
+
+# Ask adb's mDNS browser for one service type and echo "host:port", or nothing.
+# Wireless debugging advertises the pairing port only while its dialog is open
+# and the connect port whenever it is switched on, which is exactly the pair of
+# facts that makes the two ports so easy to mix up by hand.
+discover() {
+    local kind="$1" tries="${2:-1}" i=0 line
+    while [ "$i" -lt "$tries" ]; do
+        line=$(adb mdns services 2>/dev/null | awk -v k="$kind" '$2==k {print $3; exit}')
+        if [ -n "$line" ]; then printf '%s' "$line"; return 0; fi
+        i=$((i + 1))
+        [ "$i" -lt "$tries" ] && sleep 1
+    done
+    return 1
+}
+
+# Spinner while a discovery runs, so a slow scan does not look like a hang.
+discover_spin() {
+    local kind="$1" seconds="$2" label="$3" found="" i=0
+    local frames='|/-\'
+    while [ "$i" -lt "$seconds" ]; do
+        found=$(discover "$kind" 1) && { printf '\r\033[K'; printf '%s' "$found"; return 0; }
+        if [ -t 2 ]; then
+            printf '\r  %s%s %s%s' "$C_DIM" "$(printf '%s' "$frames" | cut -c$(( i % 4 + 1 )))" "$label" "$C_0" >&2
+        fi
+        i=$((i + 1))
+        sleep 1
+    done
+    [ -t 2 ] && printf '\r\033[K' >&2
+    return 1
+}
+
 # ---------------------------------------------------------------- audio device
 
 # Older configs stored mpv-style 'coreaudio/UID'; CoreAudio itself uses the bare
@@ -453,6 +525,129 @@ cmd_doctor() {
     printf '  phone ip: %s\n  config:   %s\n  log:      %s\n' "${PHONE_IP:-unset}" "$CONFIG_FILE" "$LOG_FILE"
 }
 
+
+# ------------------------------------------------------------------------ pair
+# Pairing over Wi-Fi with no cable, which Android 11 and later supports and this
+# project's minimum already guarantees. The failure this exists to prevent is
+# using the pairing port to connect: the pairing dialog and the Wireless
+# debugging screen show different ports, and by hand people reuse the first one.
+# mDNS knows both, so neither is typed.
+cmd_pair() {
+    command -v adb >/dev/null || die "adb not found. Install the Android SDK platform-tools first"
+
+    local addr="${1:-}" code="${2:-}"
+
+    printf '\n%sPair over Wi-Fi%s\n' "$C_B" "$C_0"
+    ui_hint "No cable needed. Android 11 and later only."
+    ui_rule
+
+    ui_step "1. On the phone, switch on Wireless debugging"
+    ui_phone_box "Developer options" \
+              "Stay awake            [    ]" \
+              "USB debugging         [    ]" \
+              "*Wireless debugging    [ ON ]"
+    ui_hint "Settings, System, Developer options. It is a separate switch from USB debugging."
+
+    ui_step "2. Open 'Pair device with pairing code'"
+    ui_hint "Inside Wireless debugging. Leave that dialog open, the code expires when you close it."
+
+    if [ -z "$addr" ]; then
+        printf '\n'
+        if addr=$(discover_spin _adb-tls-pairing._tcp 25 "looking for your phone on this network"); then
+            ui_good "found it at ${C_B}${addr}${C_0}"
+        else
+            ui_bad "no phone is advertising a pairing dialog on this network"
+            pair_trouble_discovery
+            printf '\n'
+            printf '  Address shown on the phone (host:port): '
+            read -r addr
+            [ -z "$addr" ] && die "no address given"
+        fi
+    fi
+
+    if [ -z "$code" ]; then
+        printf '  Six digit code shown on the phone: '
+        read -r code
+        [ -z "$code" ] && die "no pairing code given"
+    fi
+
+    ui_step "3. Pairing"
+    local out
+    if out=$(adb pair "$addr" "$code" 2>&1); then
+        ui_good "paired with $addr"
+    else
+        ui_bad "pairing failed"
+        printf '%s\n' "$out" | sed "s/^/  ${C_DIM}/;s/$/${C_0}/"
+        pair_trouble_pairing
+        exit 1
+    fi
+
+    ui_step "4. Connecting"
+    ui_hint "This uses a different port from pairing, which is why it is looked up rather than typed."
+    local connect
+    if ! connect=$(discover_spin _adb-tls-connect._tcp 15 "looking up the connect port"); then
+        ui_bad "paired, but the phone is not advertising a connect port"
+        ui_hint "Wireless debugging may have been switched off after pairing. Turn it back on,"
+        ui_hint "then run: pab pair   (it will reuse the pairing you just completed)"
+        exit 1
+    fi
+
+    if out=$(adb connect "$connect" 2>&1) && printf '%s' "$out" | grep -q 'connected to'; then
+        ui_good "connected to $connect"
+    else
+        ui_bad "could not connect to $connect"
+        printf '%s\n' "$out" | sed "s/^/  ${C_DIM}/;s/$/${C_0}/"
+        pair_trouble_connect
+        exit 1
+    fi
+
+    ui_step "5. Checking the bridge can see it"
+    local tcp; tcp=$(tcp_serial)
+    if [ -z "$tcp" ]; then
+        ui_bad "adb connected, but no wireless device is listed"
+        ui_hint "Run 'adb devices'. If it says 'unauthorized', accept the prompt on the phone."
+        exit 1
+    fi
+    local model; model=$(adb -s "$tcp" shell getprop ro.product.model </dev/null 2>/dev/null | tr -d '\r')
+    ui_good "${model:-phone} is ready over Wi-Fi"
+
+    PHONE_IP="${connect%%:*}"
+    save_config
+    ui_rule
+    printf '%sDone.%s Start the app, or run %spab run --wireless%s\n\n' "$C_OK" "$C_0" "$C_B" "$C_0"
+    ui_hint "Wireless debugging resets when the phone reboots. Pairing is remembered,"
+    ui_hint "so after a restart 'pab pair' usually just reconnects."
+}
+
+# Troubleshooting is split by where it failed, so the reader is shown the three
+# causes that fit rather than a list of everything that could ever go wrong.
+pair_trouble_discovery() {
+    printf '\n  %sWhy that usually happens%s\n' "$C_B" "$C_0"
+    ui_hint "The pairing dialog is not open. It has to be on screen while this runs."
+    ui_hint "The Mac and the phone are on different networks, or on different bands"
+    ui_hint "  of the same router that are not bridged."
+    ui_hint "The network isolates clients from each other. Guest and office Wi-Fi"
+    ui_hint "  usually do. A home network or the phone's own hotspot works."
+    ui_hint "You can still type the address by hand, below."
+}
+
+pair_trouble_pairing() {
+    printf '\n  %sWhy that usually happens%s\n' "$C_B" "$C_0"
+    ui_hint "The code expired. It is single use and dies with the dialog, so close it,"
+    ui_hint "  reopen 'Pair device with pairing code', and run 'pab pair' again."
+    ui_hint "The code was mistyped. It is six digits with no spaces."
+    ui_hint "The address was the one from the Wireless debugging screen rather than"
+    ui_hint "  from the pairing dialog. Those are different ports."
+}
+
+pair_trouble_connect() {
+    printf '\n  %sWhy that usually happens%s\n' "$C_B" "$C_0"
+    ui_hint "The phone dropped off the network between pairing and connecting."
+    ui_hint "Wireless debugging was switched off, which invalidates the connect port."
+    ui_hint "Another computer already holds the connection. Only one at a time."
+    ui_hint "Run 'pab doctor' to see what adb can currently reach."
+}
+
 cmd_enable_wireless() {
     local usb; usb=$(usb_serial)
     [ -z "$usb" ] && die "plug the phone in over USB first"
@@ -479,6 +674,8 @@ pab: Pixel Audio Bridge
   pab status          Print running/stopped.
   pab info            Machine-readable state (JSON).
   pab doctor          Check dependencies, devices, and config.
+  pab pair [ADDR CODE] Pair over Wi-Fi with no cable. Finds the phone and both
+                      ports itself; prompts for anything it cannot.
   pab enable-wireless Enable wireless ADB. Needs USB once; resets on reboot.
 EOF
 }
@@ -493,6 +690,7 @@ case "${1:-}" in
     status)          cmd_status ;;
     info)            cmd_info ;;
     doctor)          cmd_doctor ;;
+    pair)            shift; cmd_pair "$@" ;;
     enable-wireless) cmd_enable_wireless ;;
     ""|-h|--help)    usage ;;
     *)               usage; exit 1 ;;

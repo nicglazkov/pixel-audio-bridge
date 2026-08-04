@@ -347,17 +347,20 @@
       <div class="stp">
         <div class="num">4</div>
         <div>
-          <h2>Pair using the code your phone shows</h2>
+          <h2>Run one command and read out the code</h2>
           <div class="split">
             <div class="b">
-              <p>Open <b>Wireless debugging</b> and tap <b>Pair device with pairing code</b>.
-              Your phone puts a six digit code and an address on screen.</p>
-              <p>Type both into your Mac exactly as shown. The code works once and expires when
-              you close the dialog.</p>
-              <div class="codebox">adb pair 192.168.1.42:37105 481920</div>
-              <p style="margin-top:14px">This is also the answer to sharing a network with other
-              people. You are copying an address and a code off your own screen, so there is
-              nothing to scan for and no list of devices to pick the right one out of.</p>
+              <p>Open <b>Wireless debugging</b>, tap <b>Pair device with pairing code</b>, and
+              leave that dialog on screen. Then on your Mac:</p>
+              <div class="codebox">pab pair</div>
+              <p style="margin-top:14px">It finds your phone on the network, asks only for the
+              six digit code, pairs, then looks up the separate port it needs to connect on and
+              connects. You never type an address.</p>
+              <p>That matters because the pairing dialog and the Wireless debugging screen show
+              <b>different ports</b>, and reusing the first one is the mistake almost everyone
+              makes doing this by hand. It is looked up rather than typed, so it cannot happen.</p>
+              <p>If anything fails it says which of the usual causes fit, rather than printing
+              an adb error and stopping.</p>
             </div>
             <div class="phone">
               <div class="screen dlg">
@@ -367,36 +370,20 @@
                 <div class="addr">192.168.1.42:37105</div>
                 <div class="dbtns"><span class="g">Cancel</span></div>
               </div>
-              <div class="cue">both are on your phone</div>
+              <div class="cue">read the code only</div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="stp">
-        <div class="num">5</div>
-        <div>
-          <h2>Connect, using the other address</h2>
-          <div class="split">
-            <div class="b">
-              <p>This is the one step people get wrong. The pairing dialog and the Wireless
-              debugging screen show <b>different ports</b>. Pairing is finished with, so now use
-              the address on the <b>Wireless debugging</b> screen itself.</p>
+          <details style="margin-top:20px">
+            <summary style="cursor:pointer;font-size:.9rem;color:var(--ink-2)">Doing it by hand instead</summary>
+            <div class="b" style="margin-top:12px">
+              <p>Both values are on the pairing dialog:</p>
+              <div class="codebox">adb pair 192.168.1.42:37105 481920</div>
+              <p style="margin-top:14px">Then connect using the address on the <b>Wireless
+              debugging</b> screen itself, which is a different port:</p>
               <div class="codebox">adb connect 192.168.1.42:41003</div>
-              <p style="margin-top:14px">Expect <b>connected to 192.168.1.42:41003</b>. If it
-              refuses, you almost certainly reused the pairing port.</p>
             </div>
-            <div class="phone">
-              <div class="screen">
-                <div class="sbar"><span>9:41</span><span>100%</span></div>
-                <div class="stitle">Wireless debugging</div>
-                <div class="srow"><span class="k">Use wireless debugging</span><span class="sw on"></span></div>
-                <div class="srow hot"><span class="k">IP address &amp; Port</span><span>192.168.1.42:41003</span></div>
-                <div class="srow"><span class="k">Pair device with pairing code</span></div>
-              </div>
-              <div class="cue">this port, not the other</div>
-            </div>
-          </div>
+          </details>
         </div>
       </div>
 

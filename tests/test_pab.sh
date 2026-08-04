@@ -46,6 +46,13 @@ case "$1" in
     fi
     ;;
   connect) echo "connected to $2" ;;
+  mdns)
+    # FAKE_MDNS: rows of "<name>\t<type>\t<host:port>", as `adb mdns services`
+    # prints them under its header line.
+    [ "$2" = "services" ] || exit 0
+    echo "List of discovered mdns services"
+    printf '%b\n' "${FAKE_MDNS:-}"
+    ;;
 esac
 FAKE
 
@@ -158,6 +165,43 @@ is "output_name_for resolves a display name" \
    "$(output_name_for 'AA-BB:output')" "Studio Headphones"
 is "default_output_uid reads the current default" \
    "$(default_output_uid)" "BuiltInSpeakerDevice"
+
+# ------------------------------------------------------------- pairing over mDNS
+# Wireless debugging advertises two services on different ports. Reading the
+# wrong one is the failure `pab pair` exists to prevent, so the lookup that
+# replaces typing them has to pick the right service every time.
+
+export FAKE_MDNS='adb-XYZ\t_adb-tls-pairing._tcp\t192.168.1.42:37105\nadb-XYZ\t_adb-tls-connect._tcp\t192.168.1.42:41003\nadb-XYZ\t_adb._tcp\t192.168.1.42:5555'
+
+is "discover finds the pairing service" \
+   "$(discover _adb-tls-pairing._tcp)" "192.168.1.42:37105"
+is "discover finds the connect service, on its own port" \
+   "$(discover _adb-tls-connect._tcp)" "192.168.1.42:41003"
+is "discover does not confuse the two ports" \
+   "$([ "$(discover _adb-tls-pairing._tcp)" != "$(discover _adb-tls-connect._tcp)" ] && echo differ)" \
+   "differ"
+is "discover ignores the legacy tcpip service when asked for pairing" \
+   "$(discover _adb-tls-pairing._tcp)" "192.168.1.42:37105"
+
+FAKE_MDNS='adb-XYZ\t_adb._tcp\t192.168.1.42:5555'
+is "an absent service yields nothing" "$(discover _adb-tls-pairing._tcp)" ""
+export FAKE_MDNS=''
+is "no services at all yields nothing" "$(discover _adb-tls-connect._tcp)" ""
+
+# The drawn phone screen pads plain text and wraps colour around the padded
+# field. Doing it the other way makes escape sequences count toward the width,
+# which silently shortens exactly the rows that are highlighted.
+# Colours have to be ON for this to mean anything: the bug is escape sequences
+# being counted as width, and with NO_COLOR the variables are empty so a broken
+# implementation passes. They are forced here, then the sequences are stripped
+# before measuring, which is what a terminal effectively does.
+_box_widths() {
+    C_DIM=$'\033[2m' C_B=$'\033[1m' C_ACC=$'\033[35m' C_0=$'\033[0m' \
+    ui_phone_box "Developer options" "Plain row" "*Highlighted row" \
+        | sed $'s/\033\[[0-9;]*m//g' \
+        | grep -E '^[[:space:]]*[.|]' | awk '{ print length($0) }' | sort -u | wc -l | tr -d ' '
+}
+is "every line of the phone box is the same width" "$(_box_widths)" "1"
 
 # --------------------------------------------------------------- transport
 

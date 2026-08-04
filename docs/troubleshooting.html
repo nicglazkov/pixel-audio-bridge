@@ -113,8 +113,12 @@ footer{margin-top:56px}
     <details class="tsh">
       <summary>Wireless stopped working</summary>
       <div class="body">
-        <p>Wireless ADB resets whenever the phone reboots. Plug in over USB and run:</p>
-        <pre><code>./bin/pab enable-wireless</code></pre>
+        <p>Wireless ADB resets whenever the phone reboots. With no cable to hand, reopen
+        <b>Pair device with pairing code</b> on the phone and run:</p>
+        <pre><code>pab pair</code></pre>
+        <p>It finds the phone, takes the six digit code, and looks up the connect port itself,
+        so the pairing port cannot be reused by mistake. If a cable is already attached,
+        <code>pab enable-wireless</code> is quicker.</p>
         <p>If the phone is awake and on the same network but still unreachable, its Wi-Fi
         address may have changed. The address is relearned automatically the next time you
         connect over USB, so plugging in once fixes it.</p>

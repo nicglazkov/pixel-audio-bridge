@@ -80,7 +80,19 @@ export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools:/opt/homebrew/bin"
 # wins, which lets the test suite substitute a fake. Without that override the
 # tests silently used the real helper, because this path is absolute and so is
 # unaffected by PATH.
-SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Symlinks are resolved first. Homebrew's `binary` stanza links this script into
+# the brew prefix, and paboutput sits beside the real file inside the bundle, not
+# beside the link. Walked by hand rather than with `readlink -f` so a relative
+# link and a chain of them both work.
+_self="${BASH_SOURCE[0]}"
+while [ -L "$_self" ]; do
+    _link="$(readlink "$_self")"
+    case "$_link" in
+        /*) _self="$_link" ;;
+        *)  _self="$(dirname "$_self")/$_link" ;;
+    esac
+done
+SELF_DIR="$(cd "$(dirname "$_self")" && pwd)"
 if   [ -n "${PABOUTPUT:-}" ] && [ -x "${PABOUTPUT}" ]; then :
 elif [ -x "$SELF_DIR/paboutput" ];          then PABOUTPUT="$SELF_DIR/paboutput"
 elif [ -x "$SELF_DIR/../MacOS/paboutput" ]; then PABOUTPUT="$SELF_DIR/../MacOS/paboutput"

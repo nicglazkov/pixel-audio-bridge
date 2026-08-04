@@ -203,6 +203,38 @@ _box_widths() {
 }
 is "every line of the phone box is the same width" "$(_box_widths)" "1"
 
+# ----------------------------------------------------- resolving through a link
+# Homebrew's `binary` stanza puts a symlink on PATH. paboutput lives beside the
+# real script inside the app bundle, so a script that trusts $0's directory
+# looks for it next to the link and finds nothing.
+
+_LINKDIR="$(mktemp -d)"
+mkdir -p "$_LINKDIR/nested"
+ln -s "$ROOT/bin/pab" "$_LINKDIR/pab"
+ln -s ../pab "$_LINKDIR/nested/pab"
+
+_selfdir_via() {
+    BASH_SOURCE_OVERRIDE="$1" bash -c '
+        _self="$1"
+        while [ -L "$_self" ]; do
+            _link="$(readlink "$_self")"
+            case "$_link" in
+                /*) _self="$_link" ;;
+                *)  _self="$(dirname "$_self")/$_link" ;;
+            esac
+        done
+        cd "$(dirname "$_self")" && pwd
+    ' _ "$1"
+}
+
+is "a direct symlink resolves to the real directory" \
+   "$(_selfdir_via "$_LINKDIR/pab")" "$ROOT/bin"
+is "a chain of relative symlinks resolves too" \
+   "$(_selfdir_via "$_LINKDIR/nested/pab")" "$ROOT/bin"
+is "a real path is left alone" \
+   "$(_selfdir_via "$ROOT/bin/pab")" "$ROOT/bin"
+rm -rf "$_LINKDIR"
+
 # --------------------------------------------------------------- transport
 
 PHONE_SERIAL=""

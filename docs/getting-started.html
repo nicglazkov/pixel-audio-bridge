@@ -52,6 +52,8 @@
 .stp .b p:last-child{margin-bottom:0}
 .stp .b b{color:var(--ink);font-weight:600}
 .stp .codebox{margin-top:16px;font-size:.8rem}
+.cmdnote{font-size:.82rem;color:var(--ink-3);margin:9px 0 0}
+.cmdnote code{font-family:var(--mono);font-size:.94em}
 .split{display:grid;grid-template-columns:1fr auto;gap:34px;align-items:start;margin-top:18px}
 
 /* ---- phone diagrams ------------------------------------------------------
@@ -353,6 +355,8 @@
               <p>Open <b>Wireless debugging</b>, tap <b>Pair device with pairing code</b>, and
               leave that dialog on screen. Then on your Mac:</p>
               <div class="codebox">pab pair</div>
+              <p class="cmdnote">Homebrew puts <code>pab</code> on your PATH. From the disk
+              image it is <code>/Applications/PixelAudioBridge.app/Contents/Resources/pab</code>.</p>
               <p style="margin-top:14px">It finds your phone on the network, asks only for the
               six digit code, pairs, then looks up the separate port it needs to connect on and
               connects. You never type an address.</p>

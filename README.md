@@ -61,10 +61,10 @@ Developer options, turn on USB debugging, then approve this Mac when it asks.
 There is no route that skips it, because the bridge reaches your phone through
 `adb`. [The getting started guide](https://nicglazkov.github.io/pixel-audio-bridge/getting-started.html) walks both routes with a picture of every screen you need to find.
 
-No cable at all? `pab pair` does the whole Wi-Fi pairing: it finds the phone,
-asks for the six digit code your phone shows, and looks up the separate port it
-needs to connect on, so the two are never mixed up. With a cable already
-attached, `pab enable-wireless` is the shortcut.
+No cable at all? **`pab pair`** does the whole Wi-Fi pairing. It finds the phone
+on your network, asks only for the six digit code the phone shows, and looks up
+the separate port it has to connect on, so the two are never mixed up. With a
+cable already attached, `pab enable-wireless` is quicker.
 
 <details>
 <summary><strong>Build from source instead</strong></summary>
@@ -120,6 +120,13 @@ pab stop | status | info | doctor | enable-wireless
 
 `pab doctor` reports dependencies, devices, transports and config in one pass.
 Start there when something is wrong.
+
+Homebrew puts `pab` on your PATH. If you installed from the disk image instead,
+it lives inside the app:
+
+```sh
+/Applications/PixelAudioBridge.app/Contents/Resources/pab doctor
+```
 
 ## Documentation
 

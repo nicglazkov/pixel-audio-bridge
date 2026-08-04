@@ -26,8 +26,9 @@ when.
 
 Worth understanding before reporting, and worth knowing before you install it:
 
-- **It runs entirely locally.** No server, no accounts, no network calls to any
-  third party. See [PRIVACY.md](PRIVACY.md).
+- **It runs entirely locally.** No server and no accounts. The only third party
+  it can contact is GitHub, to ask whether a newer release exists, and only if
+  you switch that on when asked. See [PRIVACY.md](PRIVACY.md).
 - **It executes two external binaries**, `scrcpy` and `adb`, resolved from
   your `PATH`, falling back to Homebrew and the Android SDK's standard
   locations. If an attacker can already write to a directory on your `PATH`,

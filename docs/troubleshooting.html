@@ -71,10 +71,12 @@ footer{margin-top:56px}
         <pre><code>./bin/pab doctor</code></pre>
         <p>If your device is not in the output list, play any sound on your Mac to wake it,
         then look again. The app starts on its own within about a second of it appearing.</p>
-        <p>If the device is listed but the app still sits in Waiting, confirm the name filter
-        matches it. <code>AIRPODS_MATCH</code> in
-        <code>~/.config/pixel-audio-bridge/config</code> is a plain substring, so set it to
-        any part of your device's name.</p>
+        <p>If the device is listed but the app still sits in Waiting, a name filter is pinning
+        the bridge to something else. <code>OUTPUT_MATCH</code> in
+        <code>~/.config/pixel-audio-bridge/config</code> is a plain substring: set it to any
+        part of your device's name, or leave it empty to follow whatever your Mac is currently
+        playing through. Configs written before 1.2 use <code>AIRPODS_MATCH</code>, which is
+        still read.</p>
       </div>
     </details>
 

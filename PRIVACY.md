@@ -9,8 +9,9 @@ repository.
 
 ## The short version
 
-The app collects nothing, sends nothing anywhere, and talks only to your own
-phone. The website sets no cookies and loads nothing from third parties.
+The app collects nothing and talks only to your own phone, unless you switch on
+the optional update check. The website sets no cookies and loads nothing from
+third parties.
 
 ## What the app does with data
 

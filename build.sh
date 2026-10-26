@@ -17,7 +17,9 @@ CONTENTS="$APP/Contents"
 
 VERSION="1.3.0"
 MIN_MACOS="14.0"
-DEVELOPER_ID="Developer ID Application: Nicholas Glazkov (M7D6YHVDNK)"
+# By SHA-1: the original and the G2 Developer ID Application certificates share
+# one name, which codesign rejects as ambiguous. This is the G2 one (2031-09-17).
+DEVELOPER_ID="${DEVELOPER_ID:-86709A538B724482F011E94ED8A8E039E45AD547}"
 
 # Universal by default. Apple silicon and Intel are both claimed in the docs, so
 # both have to actually be in the binary.

@@ -17,7 +17,15 @@
 <meta name="twitter:title" content="Security, Pixel Audio Bridge">
 <meta name="twitter:description" content="How to report a vulnerability, plus an honest threat model and the risks that are accepted rather than fixed.">
 <meta name="twitter:image" content="https://nicglazkov.github.io/pixel-audio-bridge/assets/social-card.png">
-<meta name="theme-color" content="#0c0e12">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0e12" media="(prefers-color-scheme: dark)">
+<script>
+  // Applied before first paint so the page never flashes the wrong theme.
+  // ?theme=light|dark wins for one visit, then a saved choice, then the system setting.
+  (function(){var s=null;try{var q=location.search.match(/theme=(light|dark)/);s=q?q[1]:localStorage.getItem("theme");}catch(e){}
+  if(s!=="light"&&s!=="dark")s=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";
+  document.documentElement.setAttribute("data-theme",s);})();
+</script>
 <link rel="stylesheet" href="shared.css">
 <style>
 .updated{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
